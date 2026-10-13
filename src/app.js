@@ -5,7 +5,8 @@ const app = express();
 app.use(express.json());
 
 app.use('/api/v1', require('./routes/auxiliares.routes'));
-// Aquí se agregarán jugadores y rosters
+app.use('/api/v1', require('./routes/jugadores.routes'));
+// Aquí se agregarán rosters
 
 app.use((req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
 app.use(manejarErrores);
