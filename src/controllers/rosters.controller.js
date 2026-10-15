@@ -1,10 +1,11 @@
-const { z } = require('zod');
-const service = require('../services/rosters.service');
-const { TIPOS_ROSTER, ROLES_EN_ROSTER } = require('../constantes');
+const { z } = require("zod");
+const service = require("../services/rosters.service");
+const { TIPOS_ROSTER, ROLES_EN_ROSTER } = require("../constantes");
+const { idValido } = require("../errors");
 
 const rosterSchema = z.object({
   nombre: z.string().trim().min(1),
-  juego: z.string().trim().min(1).default('League of Legends'),
+  juego: z.string().trim().min(1).default("League of Legends"),
   tipo: z.enum(TIPOS_ROSTER),
   temporada: z.string().trim().min(1),
 });
@@ -14,23 +15,6 @@ const filtrosSchema = z.object({
   temporada: z.string().optional(),
 });
 
-const idDe = (req) => Number(req.params.id);
-
-exports.listar = (req, res) =>
-  res.json(service.listar(filtrosSchema.parse(req.query)));
-
-exports.obtener = (req, res) => res.json(service.obtener(idDe(req)));
-
-exports.crear = (req, res) =>
-  res.status(201).json(service.crear(rosterSchema.parse(req.body)));
-
-exports.actualizar = (req, res) =>
-  res.json(service.actualizar(idDe(req), rosterSchema.parse(req.body)));
-
-exports.eliminar = (req, res) => {
-  service.eliminar(idDe(req));
-  res.status(204).end();
-};
 const asignacionSchema = z.object({
   id_jugador: z.number().int().positive(),
   rol_en_roster: z.enum(ROLES_EN_ROSTER),
@@ -38,18 +22,56 @@ const asignacionSchema = z.object({
 
 const cambioRolSchema = z.object({ rol_en_roster: z.enum(ROLES_EN_ROSTER) });
 
-const idJugadorDe = (req) => Number(req.params.id_jugador);
+exports.listar = async (req, res) =>
+  res.json(await service.listar(filtrosSchema.parse(req.query)));
 
-exports.listarJugadores = (req, res) =>
-  res.json(service.listarJugadores(idDe(req)));
+exports.obtener = async (req, res) =>
+  res.json(await service.obtener(idValido(req.params.id)));
 
-exports.asignar = (req, res) =>
-  res.status(201).json(service.asignar(idDe(req), asignacionSchema.parse(req.body)));
+exports.crear = async (req, res) =>
+  res.status(201).json(await service.crear(rosterSchema.parse(req.body)));
 
-exports.cambiarRol = (req, res) =>
-  res.json(service.cambiarRol(idDe(req), idJugadorDe(req), cambioRolSchema.parse(req.body).rol_en_roster));
+exports.actualizar = async (req, res) =>
+  res.json(
+    await service.actualizar(
+      idValido(req.params.id),
+      rosterSchema.parse(req.body),
+    ),
+  );
 
-exports.quitar = (req, res) => {
-  service.quitar(idDe(req), idJugadorDe(req));
+exports.eliminar = async (req, res) => {
+  await service.eliminar(idValido(req.params.id));
+  res.status(204).end();
+};
+
+// ---- Asignación ----
+
+exports.listarJugadores = async (req, res) =>
+  res.json(await service.listarJugadores(idValido(req.params.id)));
+
+exports.asignar = async (req, res) =>
+  res
+    .status(201)
+    .json(
+      await service.asignar(
+        idValido(req.params.id),
+        asignacionSchema.parse(req.body),
+      ),
+    );
+
+exports.cambiarRol = async (req, res) =>
+  res.json(
+    await service.cambiarRol(
+      idValido(req.params.id),
+      idValido(req.params.id_jugador),
+      cambioRolSchema.parse(req.body).rol_en_roster,
+    ),
+  );
+
+exports.quitar = async (req, res) => {
+  await service.quitar(
+    idValido(req.params.id),
+    idValido(req.params.id_jugador),
+  );
   res.status(204).end();
 };

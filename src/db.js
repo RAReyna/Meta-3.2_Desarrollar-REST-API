@@ -1,29 +1,15 @@
-const Database = require('better-sqlite3');
-const db = new Database('roster.db');
-db.pragma('foreign_keys = ON');
+const { Sequelize } = require("sequelize");
+const config =
+  require("./config/database")[process.env.NODE_ENV || "development"];
 
-db.exec(`
-CREATE TABLE IF NOT EXISTS jugadores (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  nickname TEXT NOT NULL UNIQUE,
-  nombre_real TEXT,
-  pais TEXT,
-  rol TEXT NOT NULL CHECK (rol IN ('Top','Jungle','Mid','ADC','Support')),
-  estado TEXT NOT NULL DEFAULT 'activo' CHECK (estado IN ('activo','inactivo'))
+module.exports = new Sequelize(
+  config.database,
+  config.username,
+  config.password,
+  {
+    host: config.host,
+    port: config.port,
+    dialect: config.dialect,
+    logging: config.logging,
+  },
 );
-CREATE TABLE IF NOT EXISTS rosters (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  nombre TEXT NOT NULL,
-  juego TEXT NOT NULL DEFAULT 'League of Legends',
-  tipo TEXT NOT NULL CHECK (tipo IN ('Principal','Academy')),
-  temporada TEXT NOT NULL
-);
-CREATE TABLE IF NOT EXISTS roster_jugador (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  id_roster INTEGER NOT NULL REFERENCES rosters(id) ON DELETE CASCADE,
-  id_jugador INTEGER NOT NULL REFERENCES jugadores(id) ON DELETE CASCADE,
-  rol_en_roster TEXT NOT NULL CHECK (rol_en_roster IN ('Titular','Suplente')),
-  UNIQUE (id_roster, id_jugador)
-);`);
-
-module.exports = db;

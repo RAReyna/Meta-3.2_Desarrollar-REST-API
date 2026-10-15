@@ -1,0 +1,582 @@
+openapi: 3.0.3
+
+info:
+  title: API de Jugadores y Rosters
+  version: 1.0.0
+  description: API REST para gestionar perfiles de jugadores de eSports y sus rosters.
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Servidor local
+
+tags:
+  - name: Auxiliares
+    description: Estado del servicio y catálogos.
+  - name: Jugadores
+    description: Operaciones relacionadas con jugadores.
+  - name: Rosters
+    description: Operaciones relacionadas con rosters.
+  - name: Asignación
+    description: Gestión de jugadores dentro de rosters.
+
+paths:
+  /health:
+    get:
+      tags: [Auxiliares]
+      summary: Verificar que el API está activa
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Servicio disponible
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                required: [status]
+
+  /roles:
+    get:
+      tags: [Auxiliares]
+      summary: Listar roles válidos
+      operationId: listarRoles
+      responses:
+        "200":
+          description: Lista de roles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  enum: [Top, Jungle, Mid, ADC, Support]
+
+  /estados:
+    get:
+      tags: [Auxiliares]
+      summary: Listar estados válidos
+      operationId: listarEstados
+      responses:
+        "200":
+          description: Lista de estados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  enum: [activo, inactivo]
+
+  /tipos-roster:
+    get:
+      tags: [Auxiliares]
+      summary: Listar tipos de roster
+      operationId: listarTiposRoster
+      responses:
+        "200":
+          description: Lista de tipos de roster
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  enum: [Principal, Academy]
+
+  /jugadores:
+    get:
+      tags: [Jugadores]
+      summary: Listar jugadores
+      description: Permite filtrar por rol, estado y nickname.
+      operationId: listarJugadores
+      parameters:
+        - name: rol
+          in: query
+          required: false
+          description: Filtrar por rol.
+          schema:
+            type: string
+            enum: [Top, Jungle, Mid, ADC, Support]
+        - name: estado
+          in: query
+          required: false
+          description: Filtrar por estado.
+          schema:
+            type: string
+            enum: [activo, inactivo]
+        - name: search
+          in: query
+          required: false
+          description: Buscar por nickname.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Lista de jugadores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Jugador"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+    post:
+      tags: [Jugadores]
+      summary: Crear un jugador
+      operationId: crearJugador
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JugadorInput"
+      responses:
+        "201":
+          description: Jugador creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Jugador"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /jugadores/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ResourceId"
+
+    get:
+      tags: [Jugadores]
+      summary: Obtener un jugador por ID
+      operationId: obtenerJugador
+      responses:
+        "200":
+          description: Jugador encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Jugador"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    put:
+      tags: [Jugadores]
+      summary: Actualizar un jugador
+      operationId: actualizarJugador
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JugadorInput"
+      responses:
+        "200":
+          description: Jugador actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Jugador"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+    delete:
+      tags: [Jugadores]
+      summary: Eliminar un jugador
+      operationId: eliminarJugador
+      responses:
+        "204":
+          description: Jugador eliminado; sin cuerpo de respuesta.
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /rosters:
+    get:
+      tags: [Rosters]
+      summary: Listar rosters
+      description: Permite filtrar por tipo y temporada.
+      operationId: listarRosters
+      parameters:
+        - name: tipo
+          in: query
+          required: false
+          description: Filtrar por tipo de roster.
+          schema:
+            type: string
+            enum: [Principal, Academy]
+        - name: temporada
+          in: query
+          required: false
+          description: Filtrar por temporada.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Lista de rosters
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Roster"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+    post:
+      tags: [Rosters]
+      summary: Crear un roster
+      operationId: crearRoster
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RosterInput"
+      responses:
+        "201":
+          description: Roster creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Roster"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /rosters/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ResourceId"
+
+    get:
+      tags: [Rosters]
+      summary: Obtener un roster con sus jugadores
+      operationId: obtenerRoster
+      responses:
+        "200":
+          description: Roster encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RosterDetalle"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    put:
+      tags: [Rosters]
+      summary: Actualizar un roster
+      operationId: actualizarRoster
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RosterInput"
+      responses:
+        "200":
+          description: Roster actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Roster"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      tags: [Rosters]
+      summary: Eliminar un roster sin eliminar los perfiles de jugadores
+      operationId: eliminarRoster
+      responses:
+        "204":
+          description: Roster eliminado; sin cuerpo de respuesta.
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /rosters/{id}/jugadores:
+    parameters:
+      - $ref: "#/components/parameters/ResourceId"
+
+    get:
+      tags: [Asignación]
+      summary: Listar los jugadores de un roster
+      operationId: listarJugadoresRoster
+      responses:
+        "200":
+          description: Jugadores asignados al roster
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RosterJugador"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    post:
+      tags: [Asignación]
+      summary: Asignar un jugador a un roster
+      description: Máximo cinco titulares por roster y sin roles de jugador repetidos entre titulares.
+      operationId: asignarJugadorRoster
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AsignacionInput"
+      responses:
+        "201":
+          description: Jugador asignado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RosterJugador"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /rosters/{id}/jugadores/{id_jugador}:
+    parameters:
+      - $ref: "#/components/parameters/ResourceId"
+      - name: id_jugador
+        in: path
+        required: true
+        description: Identificador del jugador asignado.
+        schema:
+          type: integer
+          minimum: 1
+
+    put:
+      tags: [Asignación]
+      summary: Cambiar el rol de un jugador dentro del roster
+      operationId: cambiarRolJugadorRoster
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CambioRol"
+      responses:
+        "200":
+          description: Rol de asignación actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RosterJugador"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+    delete:
+      tags: [Asignación]
+      summary: Quitar un jugador del roster
+      operationId: quitarJugadorRoster
+      responses:
+        "204":
+          description: Asignación eliminada; sin cuerpo de respuesta.
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  parameters:
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      description: Identificador numérico del recurso.
+      schema:
+        type: integer
+        minimum: 1
+
+  responses:
+    BadRequest:
+      description: Datos de entrada inválidos.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationError"
+
+    NotFound:
+      description: Recurso no encontrado.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    Conflict:
+      description: Conflicto con los datos existentes o las reglas del roster.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Recurso no encontrado
+      required: [error]
+
+    ValidationError:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Datos inválidos
+        detalles:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+      required: [error, detalles]
+
+    JugadorInput:
+      type: object
+      description: Datos aceptados para crear o actualizar un jugador.
+      required: [nickname, rol]
+      properties:
+        nickname:
+          type: string
+          minLength: 1
+          example: Faker
+        nombre_real:
+          type: string
+          description: Nombre real del jugador, si se conoce.
+          example: Lee Sang-hyeok
+        pais:
+          type: string
+          description: País del jugador, si se conoce.
+          example: Corea del Sur
+        rol:
+          type: string
+          enum: [Top, Jungle, Mid, ADC, Support]
+        estado:
+          type: string
+          enum: [activo, inactivo]
+          default: activo
+
+    Jugador:
+      type: object
+      required: [id, nickname, nombre_real, pais, rol, estado]
+      properties:
+        id:
+          type: integer
+          example: 1
+        nickname:
+          type: string
+          example: Faker
+        nombre_real:
+          type: string
+          nullable: true
+          example: Lee Sang-hyeok
+        pais:
+          type: string
+          nullable: true
+          example: Corea del Sur
+        rol:
+          type: string
+          enum: [Top, Jungle, Mid, ADC, Support]
+        estado:
+          type: string
+          enum: [activo, inactivo]
+
+    RosterInput:
+      type: object
+      description: Datos aceptados para crear o actualizar un roster.
+      required: [nombre, tipo, temporada]
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          example: TL Principal
+        juego:
+          type: string
+          minLength: 1
+          default: League of Legends
+          example: League of Legends
+        tipo:
+          type: string
+          enum: [Principal, Academy]
+        temporada:
+          type: string
+          minLength: 1
+          example: "2026"
+
+    Roster:
+      type: object
+      required: [id, nombre, juego, tipo, temporada]
+      properties:
+        id:
+          type: integer
+          example: 1
+        nombre:
+          type: string
+          example: TL Principal
+        juego:
+          type: string
+          example: League of Legends
+        tipo:
+          type: string
+          enum: [Principal, Academy]
+        temporada:
+          type: string
+          example: "2026"
+        cantidad_jugadores:
+          type: integer
+          description: Cantidad de jugadores asignados, si la respuesta incluye este campo.
+          minimum: 0
+
+    RosterJugador:
+      type: object
+      required: [id, nickname, rol, rol_en_roster]
+      properties:
+        id:
+          type: integer
+          description: Identificador del jugador.
+          example: 1
+    RosterDetalle:
+      allOf:
+        - $ref: "#/components/schemas/Roster"
+        - type: object
+          required: [jugadores]
+          properties:
+            jugadores:
+              type: array
+              items:
+                $ref: "#/components/schemas/RosterJugador"
+
+    AsignacionInput:
+      type: object
+      required: [id_jugador, rol_en_roster]
+      properties:
+        id_jugador:
+          type: integer
+          minimum: 1
+          example: 1
+        rol_en_roster:
+          type: string
+          enum: [Titular, Suplente]
+
+    CambioRol:
+      type: object
+      required: [rol_en_roster]
+      properties:
+        rol_en_roster:
+          type: string
+          enum: [Titular, Suplente]

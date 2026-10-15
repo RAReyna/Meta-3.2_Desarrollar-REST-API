@@ -1,13 +1,14 @@
-const { z } = require('zod');
-const service = require('../services/jugadores.service');
-const { ROLES, ESTADOS } = require('../constantes');
+const { z } = require("zod");
+const service = require("../services/jugadores.service");
+const { ROLES, ESTADOS } = require("../constantes");
+const { idValido } = require("../errors");
 
 const jugadorSchema = z.object({
   nickname: z.string().trim().min(1),
   nombre_real: z.string().optional(),
   pais: z.string().optional(),
   rol: z.enum(ROLES),
-  estado: z.enum(ESTADOS).default('activo'),
+  estado: z.enum(ESTADOS).default("activo"),
 });
 
 const filtrosSchema = z.object({
@@ -16,20 +17,24 @@ const filtrosSchema = z.object({
   search: z.string().optional(),
 });
 
-const idDe = (req) => Number(req.params.id);
+exports.listar = async (req, res) =>
+  res.json(await service.listar(filtrosSchema.parse(req.query)));
 
-exports.listar = (req, res) =>
-  res.json(service.listar(filtrosSchema.parse(req.query)));
+exports.obtener = async (req, res) =>
+  res.json(await service.obtener(idValido(req.params.id)));
 
-exports.obtener = (req, res) => res.json(service.obtener(idDe(req)));
+exports.crear = async (req, res) =>
+  res.status(201).json(await service.crear(jugadorSchema.parse(req.body)));
 
-exports.crear = (req, res) =>
-  res.status(201).json(service.crear(jugadorSchema.parse(req.body)));
+exports.actualizar = async (req, res) =>
+  res.json(
+    await service.actualizar(
+      idValido(req.params.id),
+      jugadorSchema.parse(req.body),
+    ),
+  );
 
-exports.actualizar = (req, res) =>
-  res.json(service.actualizar(idDe(req), jugadorSchema.parse(req.body)));
-
-exports.eliminar = (req, res) => {
-  service.eliminar(idDe(req));
+exports.eliminar = async (req, res) => {
+  await service.eliminar(idValido(req.params.id));
   res.status(204).end();
 };

@@ -1,30 +1,45 @@
-const Jugador = require('../models/jugador.model');
-const { HttpError } = require('../errors');
+const { Op } = require("sequelize");
+const Jugador = require("../models/jugador.model");
+const { HttpError } = require("../errors");
 
-exports.listar = (filtros) => Jugador.listar(filtros);
-
-exports.obtener = (id) => {
-  const jugador = Jugador.obtener(id);
-  if (!jugador) throw new HttpError(404, 'Jugador no encontrado');
+const buscar = async (id) => {
+  const jugador = await Jugador.findByPk(id);
+  if (!jugador) throw new HttpError(404, "Jugador no encontrado");
   return jugador;
 };
 
-exports.crear = (data) => {
-  if (Jugador.obtenerPorNickname(data.nickname))
-    throw new HttpError(409, 'El nickname ya existe');
-  const { lastInsertRowid } = Jugador.crear(data);
-  return Jugador.obtener(lastInsertRowid);
+exports.obtener = buscar;
+
+exports.listar = ({ rol, estado, search }) => {
+  const where = {};
+  if (rol) where.rol = rol;
+  if (estado) where.estado = estado;
+  if (search) where.nickname = { [Op.like]: `%${search}%` };
+  return Jugador.findAll({ where, order: [["id", "ASC"]] });
 };
 
-exports.actualizar = (id, data) => {
-  exports.obtener(id); // lanza 404 si no existe
-  const otro = Jugador.obtenerPorNickname(data.nickname);
-  if (otro && otro.id !== id) throw new HttpError(409, 'El nickname ya existe');
-  Jugador.actualizar(id, data);
-  return Jugador.obtener(id);
+exports.crear = async (data) => {
+  if (await Jugador.findOne({ where: { nickname: data.nickname } }))
+    throw new HttpError(409, "El nickname ya existe");
+  const creado = await Jugador.create(data);
+  return Jugador.findByPk(creado.id); // relee para incluir los campos nulos
 };
 
-exports.eliminar = (id) => {
-  exports.obtener(id); // lanza 404 si no existe
-  Jugador.eliminar(id);
+exports.actualizar = async (id, data) => {
+  const jugador = await buscar(id);
+  const otro = await Jugador.findOne({ where: { nickname: data.nickname } });
+  if (otro && otro.id !== id) throw new HttpError(409, "El nickname ya existe");
+  await jugador.update({
+    nickname: data.nickname,
+    nombre_real: data.nombre_real ?? null,
+    pais: data.pais ?? null,
+    rol: data.rol,
+    estado: data.estado,
+  });
+  return jugador;
+};
+
+exports.eliminar = async (id) => {
+  const jugador = await buscar(id);
+  await jugador.destroy();
 };
