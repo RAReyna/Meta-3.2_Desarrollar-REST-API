@@ -22,6 +22,8 @@ Requisitos: Node.js 20 o superior y MySQL 8.
 
 **1. Clonar e instalar dependencias**
 
+Si MySQL no está instalado (Linux/WSL): `sudo apt update && sudo apt install mysql-server -y`
+
 ```bash
 git clone https://github.com/RAReyna/Meta-3.2_Desarrollar-REST-API.git
 cd Meta-3.2_Desarrollar-REST-API
