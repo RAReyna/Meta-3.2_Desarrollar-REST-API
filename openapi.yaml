@@ -550,6 +550,18 @@ components:
           type: integer
           description: Identificador del jugador.
           example: 1
+        nickname:
+          type: string
+          example: Faker
+        rol:
+          type: string
+          description: Rol natural del jugador.
+          enum: [Top, Jungle, Mid, ADC, Support]
+        rol_en_roster:
+          type: string
+          enum: [Titular, Suplente]
+
+    RosterDetalle:
     RosterDetalle:
       allOf:
         - $ref: "#/components/schemas/Roster"
