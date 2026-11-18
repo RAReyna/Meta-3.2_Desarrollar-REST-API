@@ -562,7 +562,6 @@ components:
           enum: [Titular, Suplente]
 
     RosterDetalle:
-    RosterDetalle:
       allOf:
         - $ref: "#/components/schemas/Roster"
         - type: object
