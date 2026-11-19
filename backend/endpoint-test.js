@@ -1,5 +1,10 @@
 // Uso: con el servidor corriendo (npm run dev) → node endpoint-test.js
+// Requiere el usuario admin (npm run seed:admin).
+require("dotenv").config();
+
 const BASE = process.env.API_URL || "http://localhost:3000/api/v1";
+const EMAIL = process.env.ADMIN_EMAIL || "admin@example.com";
+const PASSWORD = process.env.ADMIN_PASSWORD || "Admin12345";
 const S = Date.now().toString().slice(-6); // sufijo único para poder repetir la prueba
 const ids = {}; // ids guardados; "$top" se sustituye por su id
 
@@ -97,25 +102,122 @@ const pasos = [
   ...Object.keys(roles).map((k) => ["DELETE", `/jugadores/$${k}`, 204]),
 ];
 
+// Petición con cookie y token CSRF opcionales.
+async function pedir(metodo, ruta, { body, cookie, csrf } = {}) {
+  const headers = { "Content-Type": "application/json" };
+  if (cookie) headers.Cookie = cookie;
+  if (csrf) headers["x-csrf-token"] = csrf;
+  const res = await fetch(BASE + ruta, {
+    method: metodo,
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const texto = await res.text();
+  return { res, status: res.status, texto };
+}
+
+// Login: devuelve la cookie lista para reenviar y el token CSRF.
+async function iniciarSesion(email, password) {
+  const r = await pedir("POST", "/auth/login", { body: { email, password } });
+  if (r.status !== 200) return { ...r, cookie: "", csrf: "" };
+  const cookie = r.res.headers
+    .getSetCookie()
+    .map((c) => c.split(";")[0])
+    .join("; ");
+  return { ...r, cookie, csrf: JSON.parse(r.texto).csrfToken };
+}
+
 (async () => {
+  let total = 0;
   let fallos = 0;
+  const registrar = (ok, etiqueta, detalle = "") => {
+    total++;
+    if (!ok) fallos++;
+    console.log(`${ok ? "Pass" : "Fail"} ${etiqueta}${ok ? "" : "  " + detalle}`);
+  };
+  const linea = (metodo, ruta, status, esperado) =>
+    `${metodo.padEnd(6)} ${ruta.padEnd(42)} ${status} (esperado ${esperado})`;
+
+  // ── Sesión de admin para las pruebas funcionales ──
+  const admin = await iniciarSesion(EMAIL, PASSWORD);
+  registrar(
+    admin.status === 200,
+    linea("POST", "/auth/login (admin)", admin.status, 200),
+    admin.texto,
+  );
+  if (admin.status !== 200) {
+    console.error("\nNo se pudo iniciar sesión. Revisa ADMIN_EMAIL/ADMIN_PASSWORD y corre npm run seed:admin.");
+    process.exit(1);
+  }
+
+  // ── Pruebas funcionales (con sesión de admin) ──
   for (const [metodo, ruta, esperado, body, guardar] of pasos) {
     const path = ruta.replace(/\$(\w+)/g, (_, k) => ids[k]);
-    const res = await fetch(BASE + path, {
-      method: metodo,
-      headers: { "Content-Type": "application/json" },
-      body:
-        body && JSON.stringify(body).replace(/"\$(\w+)"/g, (_, k) => ids[k]),
+    const cuerpo = body && JSON.parse(JSON.stringify(body).replace(/"\$(\w+)"/g, (_, k) => ids[k]));
+    const r = await pedir(metodo, path, {
+      body: cuerpo,
+      cookie: admin.cookie,
+      csrf: admin.csrf,
     });
-    const texto = await res.text();
-    if (guardar && res.ok) ids[guardar] = JSON.parse(texto).id;
-    const ok = res.status === esperado;
-    if (!ok) fallos++;
-    console.log(
-      `${ok ? "Pass" : "Fail"} ${metodo.padEnd(6)} ${path.padEnd(42)} ${res.status} (esperado ${esperado})${ok ? "" : "  " + texto}`,
+    if (guardar && r.res.ok) ids[guardar] = JSON.parse(r.texto).id;
+    registrar(
+      r.status === esperado,
+      linea(metodo, path, r.status, esperado),
+      r.texto,
     );
   }
-  console.log(`\n${pasos.length - fallos}/${pasos.length} pruebas pasaron`);
+
+  // ── Pruebas de seguridad ──
+  const caso = async (metodo, ruta, esperado, opciones) => {
+    const r = await pedir(metodo, ruta, opciones);
+    registrar(
+      r.status === esperado,
+      linea(metodo, ruta + (opciones?.nota ? ` [${opciones.nota}]` : ""), r.status, esperado),
+      r.texto,
+    );
+    return r;
+  };
+  const nuevo = { nickname: "seg" + S, rol: "Top" };
+
+  await caso("POST", "/auth/login", 401, {
+    body: { email: EMAIL, password: "incorrecta" },
+    nota: "contraseña incorrecta",
+  });
+  await caso("POST", "/auth/login", 401, {
+    body: { email: "nadie@example.com", password: "x" },
+    nota: "email inexistente",
+  });
+  await caso("POST", "/auth/login", 400, {
+    body: { email: "no-es-email" },
+    nota: "datos inválidos",
+  });
+  await caso("GET", "/jugadores", 200, { nota: "público, sin sesión" });
+  await caso("POST", "/jugadores", 401, { body: nuevo, nota: "sin sesión" });
+  await caso("DELETE", "/jugadores/999999", 401, { nota: "sin sesión" });
+  await caso("POST", "/jugadores", 403, {
+    body: nuevo,
+    cookie: admin.cookie,
+    nota: "sin token CSRF",
+  });
+  await caso("POST", "/jugadores", 403, {
+    body: nuevo,
+    cookie: admin.cookie,
+    csrf: "token-incorrecto",
+    nota: "CSRF incorrecto",
+  });
+  await caso("GET", "/auth/me", 200, { cookie: admin.cookie, nota: "con sesión" });
+  await caso("GET", "/auth/me", 401, { nota: "sin sesión" });
+
+  const salida = await caso("POST", "/auth/logout", 204, {
+    cookie: admin.cookie,
+    csrf: admin.csrf,
+  });
+  const limpia = salida.res.headers
+    .getSetCookie()
+    .some((c) => c.startsWith("jwt_token=;"));
+  registrar(limpia, "POST   /auth/logout [limpia la cookie jwt_token]");
+
+  console.log(`\n${total - fallos}/${total} pruebas pasaron`);
   process.exit(fallos ? 1 : 0);
 })().catch((e) => {
   console.error("Error (¿está corriendo el servidor?):", e.message);
