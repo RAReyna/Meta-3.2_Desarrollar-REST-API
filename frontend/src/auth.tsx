@@ -12,6 +12,7 @@ interface AuthCtx {
   usuario: Usuario | null;
   cargando: boolean;
   login: (email: string, password: string) => Promise<Usuario>;
+  registro: (email: string, password: string) => Promise<Usuario>;
   logout: () => Promise<void>;
 }
 
@@ -30,14 +31,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setCargando(false));
   }, []);
 
-  async function login(email: string, password: string) {
-    const r = await api.post<{ usuario: Usuario }>("/auth/login", {
-      email,
-      password,
-    });
+  // Login y registro responden igual: el backend deja la sesión abierta.
+  async function entrar(ruta: string, email: string, password: string) {
+    const r = await api.post<{ usuario: Usuario }>(ruta, { email, password });
     setUsuario(r.usuario);
     return r.usuario;
   }
+  const login = (email: string, password: string) =>
+    entrar("/auth/login", email, password);
+  const registro = (email: string, password: string) =>
+    entrar("/auth/registro", email, password);
 
   async function logout() {
     try {
@@ -49,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <Ctx.Provider value={{ usuario, cargando, login, logout }}>
+    <Ctx.Provider value={{ usuario, cargando, login, registro, logout }}>
       {children}
     </Ctx.Provider>
   );

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ApiError } from "../api";
 import { destinoPorRol, useAuth } from "../auth";
 
@@ -61,6 +61,12 @@ export default function Login() {
       <button type="submit" disabled={enviando} data-testid="login-submit">
         Entrar
       </button>
+      <p>
+        ¿No tienes cuenta?{" "}
+        <Link to="/registro" data-testid="link-registro">
+          Regístrate
+        </Link>
+      </p>
     </form>
   );
 }

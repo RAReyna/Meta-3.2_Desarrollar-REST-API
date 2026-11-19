@@ -3,6 +3,7 @@ import Layout from "./components/Layout";
 import RutaProtegida from "./components/RutaProtegida";
 import { destinoPorRol, useAuth } from "./auth";
 import Login from "./pages/Login";
+import Registro from "./pages/Registro";
 import JugadoresPublic from "./pages/public/Jugadores";
 import Jugadores from "./pages/admin/Jugadores";
 import Rosters from "./pages/admin/Rosters";
@@ -20,6 +21,7 @@ export default function App() {
           }
         />
         <Route path="login" element={<Login />} />
+        <Route path="registro" element={<Registro />} />
         <Route element={<RutaProtegida />}>
           <Route path="jugadores" element={<JugadoresPublic />} />
         </Route>
