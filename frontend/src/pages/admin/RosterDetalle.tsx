@@ -185,11 +185,8 @@ export default function RosterDetalle() {
       </p>
       <h1 data-testid="roster-titulo">{roster.nombre}</h1>
 
-      {/* key: si cambian los datos guardados, el formulario se reinicia */}
-      <EditarRoster
-        key={`${roster.nombre}|${roster.tipo}|${roster.temporada}`}
-        roster={roster}
-      />
+      {/* key: al cambiar de roster el formulario se reinicia (no al guardar) */}
+      <EditarRoster key={roster.id} roster={roster} />
 
       <h2>Jugadores del roster</h2>
 
