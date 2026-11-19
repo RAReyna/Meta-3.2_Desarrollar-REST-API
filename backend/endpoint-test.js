@@ -191,7 +191,8 @@ async function iniciarSesion(email, password) {
     body: { email: "no-es-email" },
     nota: "datos inválidos",
   });
-  await caso("GET", "/jugadores", 200, { nota: "público, sin sesión" });
+  await caso("GET", "/jugadores", 401, { nota: "sin sesión" });
+  await caso("GET", "/rosters", 401, { nota: "sin sesión" });
   await caso("POST", "/jugadores", 401, { body: nuevo, nota: "sin sesión" });
   await caso("DELETE", "/jugadores/999999", 401, { nota: "sin sesión" });
   await caso("POST", "/jugadores", 403, {
@@ -207,6 +208,55 @@ async function iniciarSesion(email, password) {
   });
   await caso("GET", "/auth/me", 200, { cookie: admin.cookie, nota: "con sesión" });
   await caso("GET", "/auth/me", 401, { nota: "sin sesión" });
+
+  // ── Registro y rol public (solo lectura) ──
+  const emailPublic = `public${S}@example.com`;
+  const reg = await caso("POST", "/auth/registro", 201, {
+    body: { email: emailPublic, password: "Public12345" },
+    nota: "cuenta nueva",
+  });
+  registrar(
+    reg.status === 201 && JSON.parse(reg.texto).usuario.rol === "public",
+    "POST   /auth/registro [la cuenta nueva tiene rol public]",
+    reg.texto,
+  );
+  await caso("POST", "/auth/registro", 409, {
+    body: { email: emailPublic.toUpperCase(), password: "Public12345" },
+    nota: "email duplicado",
+  });
+  await caso("POST", "/auth/registro", 400, {
+    body: { email: "no-es-email", password: "corta" },
+    nota: "datos inválidos",
+  });
+  const regAdmin = await caso("POST", "/auth/registro", 201, {
+    body: { email: `rol${S}@example.com`, password: "Public12345", rol: "admin" },
+    nota: "intenta rol admin",
+  });
+  registrar(
+    regAdmin.status === 201 && JSON.parse(regAdmin.texto).usuario.rol === "public",
+    "POST   /auth/registro [ignora el rol enviado en el body]",
+    regAdmin.texto,
+  );
+
+  const pub = await iniciarSesion(emailPublic, "Public12345");
+  registrar(
+    pub.status === 200,
+    linea("POST", "/auth/login (public)", pub.status, 200),
+    pub.texto,
+  );
+  await caso("GET", "/jugadores", 200, { cookie: pub.cookie, nota: "public" });
+  await caso("GET", "/rosters", 200, { cookie: pub.cookie, nota: "public" });
+  await caso("POST", "/jugadores", 403, {
+    body: nuevo,
+    cookie: pub.cookie,
+    csrf: pub.csrf,
+    nota: "public con CSRF válido",
+  });
+  await caso("DELETE", "/rosters/999999", 403, {
+    cookie: pub.cookie,
+    csrf: pub.csrf,
+    nota: "public",
+  });
 
   const salida = await caso("POST", "/auth/logout", 204, {
     cookie: admin.cookie,

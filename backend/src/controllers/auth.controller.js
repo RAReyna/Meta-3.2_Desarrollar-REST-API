@@ -19,6 +19,36 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+// bcrypt solo usa los primeros 72 bytes de la contraseña.
+const registroSchema = z.object({
+  email: z.email().max(255),
+  password: z.string().min(8).max(72),
+});
+
+const datosUsuario = (u) => ({ id: u.id, email: u.email, rol: u.rol });
+
+// Firma el JWT, establece las dos cookies y responde con el usuario.
+function abrirSesion(res, usuario, status = 200) {
+  const csrf = crypto.randomBytes(32).toString("hex");
+  const token = jwt.sign({ rol: usuario.rol, csrf }, process.env.JWT_SECRET, {
+    algorithm: "HS256",
+    subject: String(usuario.id),
+    expiresIn: Math.floor(MAX_AGE / 1000),
+  });
+
+  res.cookie("jwt_token", token, {
+    ...COOKIE_BASE,
+    httpOnly: true,
+    maxAge: MAX_AGE,
+  });
+  res.cookie("csrf_token", csrf, {
+    ...COOKIE_BASE,
+    httpOnly: false,
+    maxAge: MAX_AGE,
+  });
+  res.status(status).json({ usuario: datosUsuario(usuario), csrfToken: csrf });
+}
+
 async function login(req, res) {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -38,28 +68,27 @@ async function login(req, res) {
   if (!usuario || !ok) {
     return res.status(401).json({ error: "Credenciales inválidas" });
   }
+  abrirSesion(res, usuario);
+}
 
-  const csrf = crypto.randomBytes(32).toString("hex");
-  const token = jwt.sign({ rol: usuario.rol, csrf }, process.env.JWT_SECRET, {
-    algorithm: "HS256",
-    subject: String(usuario.id),
-    expiresIn: Math.floor(MAX_AGE / 1000),
-  });
+// Registro abierto: toda cuenta nueva es "public" (solo lectura).
+// El rol nunca se toma del body, así nadie puede registrarse como admin.
+async function registro(req, res) {
+  const parsed = registroSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res
+      .status(400)
+      .json({ error: "Datos inválidos", detalles: parsed.error.issues });
+  }
+  const email = parsed.data.email.toLowerCase();
 
-  res.cookie("jwt_token", token, {
-    ...COOKIE_BASE,
-    httpOnly: true,
-    maxAge: MAX_AGE,
-  });
-  res.cookie("csrf_token", csrf, {
-    ...COOKIE_BASE,
-    httpOnly: false,
-    maxAge: MAX_AGE,
-  });
-  res.json({
-    usuario: { id: usuario.id, email: usuario.email, rol: usuario.rol },
-    csrfToken: csrf,
-  });
+  if (await Usuario.findOne({ where: { email } })) {
+    return res.status(409).json({ error: "El email ya está registrado" });
+  }
+  const password_hash = await bcrypt.hash(parsed.data.password, 10);
+  // Si dos registros llegan a la vez, el índice único responde 409 (errors.js).
+  const usuario = await Usuario.create({ email, password_hash, rol: "public" });
+  abrirSesion(res, usuario, 201);
 }
 
 function logout(req, res) {
@@ -71,10 +100,7 @@ function logout(req, res) {
 async function me(req, res) {
   const usuario = await Usuario.findByPk(req.usuario.id);
   if (!usuario) return res.status(401).json({ error: "No autenticado" });
-  res.json({
-    usuario: { id: usuario.id, email: usuario.email, rol: usuario.rol },
-    csrfToken: req.csrfEnJwt,
-  });
+  res.json({ usuario: datosUsuario(usuario), csrfToken: req.csrfEnJwt });
 }
 
-module.exports = { login, logout, me };
+module.exports = { login, registro, logout, me };

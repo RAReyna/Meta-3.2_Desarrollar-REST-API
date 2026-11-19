@@ -5,7 +5,7 @@ const cookieParser = require("cookie-parser");
 const swaggerUi = require("swagger-ui-express");
 const yaml = require("js-yaml");
 const { manejarErrores } = require("./errors");
-const { protegerEscrituras } = require("./middleware/auth");
+const { protegerApi } = require("./middleware/auth");
 
 const openapi = yaml.load(
   fs.readFileSync(path.join(__dirname, "..", "openapi.yaml"), "utf8"),
@@ -15,13 +15,13 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
-// Auth primero: el login no debe pasar por la protección de escrituras.
+// Sin protección: login/registro, y health + catálogos (no contienen datos).
 app.use("/api/v1/auth", require("./routes/auth.routes"));
-
-// A partir de aquí, POST/PUT/DELETE exigen admin + JWT + CSRF.
-app.use("/api/v1", protegerEscrituras);
-
 app.use("/api/v1", require("./routes/auxiliares.routes"));
+
+// A partir de aquí todo exige sesión; POST/PUT/DELETE además admin + CSRF.
+app.use("/api/v1", protegerApi);
+
 app.use("/api/v1", require("./routes/jugadores.routes"));
 app.use("/api/v1", require("./routes/rosters.routes"));
 

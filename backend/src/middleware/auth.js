@@ -50,14 +50,17 @@ function requerirAdmin(req, res, next) {
 const soloEscrituras = (mw) => (req, res, next) =>
   METODOS_SEGUROS.has(req.method) ? next() : mw(req, res, next);
 
-// GET queda público (rol Public); POST/PUT/DELETE exigen admin + CSRF.
-const protegerEscrituras = [autenticar, verificarCsrf, requerirAdmin].map(
-  soloEscrituras,
-);
+// Toda petición exige sesión (admin o public). Además, POST/PUT/DELETE
+// exigen token CSRF y rol admin: el rol public solo puede leer.
+const protegerApi = [
+  autenticar,
+  soloEscrituras(verificarCsrf),
+  soloEscrituras(requerirAdmin),
+];
 
 module.exports = {
   autenticar,
   verificarCsrf,
   requerirAdmin,
-  protegerEscrituras,
+  protegerApi,
 };
