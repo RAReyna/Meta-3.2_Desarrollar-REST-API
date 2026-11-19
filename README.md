@@ -5,6 +5,8 @@ Aplicación web para gestionar jugadores y rosters de eSports (League of Legends
 - **Backend:** API REST con Express, Sequelize y MySQL. Autenticación con JWT en cookie HttpOnly y protección CSRF (double submit cookie).
 - **Frontend:** panel de administración en React + TypeScript + Vite.
 
+> **Nota sobre la rama `google-auth`:** esta rama se creó únicamente para implementar el Trabajo 2 (autenticación con Google OAuth) sobre el código del Trabajo 1. No contiene otros cambios y no se usa para desarrollo adicional.
+
 ## Estructura
 
 ```
@@ -63,6 +65,10 @@ Edita `backend/.env` con tus valores:
 | `COOKIE_MAX_AGE` | Duración de la sesión en milisegundos                | `3600000` (1 hora)    |
 | `ADMIN_EMAIL`    | Email del usuario administrador inicial              | `admin@example.com`   |
 | `ADMIN_PASSWORD` | Contraseña del administrador inicial                 |                       |
+| `GOOGLE_CLIENT_ID` | Client ID de Google OAuth | |
+| `GOOGLE_CLIENT_SECRET` | Client Secret de Google OAuth | |
+| `GOOGLE_REDIRECT_URI` | URI de callback registrada en Google | `http://localhost:3000/api/v1/auth/google/callback` |
+| `FRONTEND_URL` | URL del frontend (destino tras el login con Google) | `http://localhost:5173` |
 
 Para generar un `JWT_SECRET`:
 
@@ -141,11 +147,48 @@ Un sitio externo puede provocar que el navegador envíe las cookies, pero no pue
 | POST   | `/api/v1/auth/login`    | Inicia sesión y establece las cookies                |
 | POST   | `/api/v1/auth/logout`   | Cierra la sesión (requiere token CSRF)               |
 | GET    | `/api/v1/auth/me`       | Devuelve el usuario de la sesión y su token CSRF     |
+| GET    | `/api/v1/auth/google/login`    | Redirige a Google para iniciar sesión |
+| GET    | `/api/v1/auth/google/callback` | Recibe el código de Google, crea o vincula el usuario y establece las cookies |
 
 ### Limitaciones conocidas
 
 - El JWT no se puede revocar antes de expirar: el logout borra las cookies del navegador, pero el servidor no invalida el token. Una mejora sería usar JWT de vida corta con refresh tokens guardados en base de datos.
 - No hay límite de intentos de login (rate limiting).
+
+## Autenticación con Google OAuth
+
+Además del login local, se puede entrar con una cuenta de Google. Esta funcionalidad vive en la rama `google-auth` (ver nota al inicio).
+
+### Flujo
+
+1. `GET /api/v1/auth/google/login` genera un `state` aleatorio, lo guarda en la cookie HttpOnly `oauth_state` (`SameSite=Lax`, porque Google redirige de vuelta desde otro sitio) y redirige a Google.
+2. Google redirige a `GET /api/v1/auth/google/callback` con `code` y `state`.
+3. El backend valida el `state`, intercambia el `code` por un token y lee el perfil (`sub`, `email`, `email_verified`).
+4. Busca al usuario por `google_id`. Si no existe, lo busca por email y lo vincula. Si tampoco existe, lo crea con rol `public`.
+5. Emite las mismas cookies que el login local (`jwt_token` HttpOnly y `csrf_token`) y redirige al frontend. Si algo falla, redirige a `/login?error=<codigo>` y el frontend muestra el mensaje.
+
+La tabla `usuarios` agrega la columna `google_id` (única) y `password_hash` pasa a ser opcional. La migración `20261119000001-agregar-google-id-usuarios.js` lo aplica con `npm run db:migrate`. Un usuario creado con Google no tiene contraseña, así que no puede entrar por el login local.
+
+### Configuración en Google Cloud Console
+
+1. Crear un proyecto en <https://console.cloud.google.com>.
+2. En **APIs y servicios > Pantalla de consentimiento de OAuth**: tipo **Externo** y agregar los correos de prueba en **Usuarios de prueba**.
+3. En **Credenciales > Crear credenciales > ID de cliente de OAuth**:
+   - Tipo: **Aplicación web**
+   - Orígenes autorizados de JavaScript: `http://localhost:5173`
+   - URI de redireccionamiento autorizado: `http://localhost:3000/api/v1/auth/google/callback`
+4. Copiar el Client ID y el Client Secret a `backend/.env`.
+
+### Roles
+
+Los usuarios nuevos que entran con Google reciben el rol `public`. Para convertir a alguien en admin se cambia su `rol` directamente en la tabla `usuarios`; como el rol va dentro del JWT, debe cerrar sesión y volver a entrar.
+
+### Cómo probar
+
+1. Iniciar backend y frontend como se indica en **Ejecución**.
+2. Abrir <http://localhost:5173/login> y pulsar **Entrar con Google**.
+3. Elegir una cuenta registrada como usuario de prueba.
+4. Verificar en DevTools > Application > Cookies que existen `jwt_token` y `csrf_token`.
 
 ## Pruebas
 
