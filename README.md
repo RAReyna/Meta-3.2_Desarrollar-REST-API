@@ -1,254 +1,163 @@
-# Meta 3.2: REST API de Jugadores y Rosters
+# Rosters eSports: API REST + Frontend Admin
 
-API REST para gestionar perfiles de jugadores de eSports y armar rosters de equipos (League of Legends).
-Proyecto de Desarrollo Web, UABC.
+Aplicación web para gestionar jugadores y rosters de eSports (League of Legends). Proyecto de Desarrollo Web, UABC.
 
-## Entregables
+- **Backend:** API REST con Express, Sequelize y MySQL. Autenticación con JWT en cookie HttpOnly y protección CSRF (double submit cookie).
+- **Frontend:** panel de administración en React + TypeScript + Vite.
 
-| Entregable                    | Dónde está                                                                         |
-| ----------------------------- | ---------------------------------------------------------------------------------- |
-| Repositorio Git con el código | Este repositorio                                                                   |
-| Base de datos funcional       | MySQL, con el esquema versionado mediante migraciones de Sequelize (`migrations/`) |
-| Documentación OpenAPI         | `openapi.yaml` (raíz), visible en `/docs` y `/openapi.json`                        |
-| README con instalación y uso  | Este archivo                                                                       |
+## Estructura
 
-## Tecnologías
+```
+.
+├── backend/    # API REST (Node.js, Express, Sequelize, MySQL)
+├── frontend/   # Panel Admin (React, TypeScript, Vite)
+└── README.md
+```
 
-Node.js · Express · MySQL · Sequelize (ORM y migraciones) · Zod · OpenAPI 3.0 con Swagger UI
+La documentación detallada de la API (endpoints, reglas de negocio, modelo de datos) está en [`backend/README.md`](backend/README.md).
+
+## Requisitos
+
+- Node.js 20 o superior
+- MySQL 8
 
 ## Instalación
 
-Requisitos: Node.js 20 o superior y MySQL 8.
+**1. Clonar el repositorio**
 
-**1. Clonar e instalar dependencias**
-
-Si MySQL no está instalado (Linux/WSL): `sudo apt update && sudo apt install mysql-server -y`
-
-```bash
+```
 git clone https://github.com/RAReyna/Meta-3.2_Desarrollar-REST-API.git
 cd Meta-3.2_Desarrollar-REST-API
-npm install
 ```
 
-**2. Crear la base de datos y un usuario**
+**2. Crear la base de datos y un usuario de MySQL**
 
-Con el servicio de MySQL activo (en Linux/WSL: `sudo service mysql start`), abre el cliente con `sudo mysql` y ejecuta:
+Con el servicio activo (en Linux/WSL: `sudo service mysql start`), abre `sudo mysql` y ejecuta:
 
-```sql
+```
 CREATE DATABASE roster_api CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER 'roster'@'localhost' IDENTIFIED BY 'tu_contrasena';
 GRANT ALL PRIVILEGES ON roster_api.* TO 'roster'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-**3. Configurar las variables de entorno**
+**3. Configurar y preparar el backend**
 
-```bash
+```
+cd backend
+npm install
 cp .env.example .env
 ```
 
-Edita `.env` y coloca tu contraseña en `DB_PASSWORD`. Si usaste otros nombres de base de datos o usuario, ajústalos también.
+Edita `backend/.env` con tus valores:
 
-| Variable      | Descripción                | Valor de ejemplo |
-| ------------- | -------------------------- | ---------------- |
-| `PORT`        | Puerto del servidor        | `3000`           |
-| `DB_HOST`     | Servidor MySQL             | `127.0.0.1`      |
-| `DB_PORT`     | Puerto de MySQL            | `3306`           |
-| `DB_NAME`     | Nombre de la base de datos | `roster_api`     |
-| `DB_USER`     | Usuario de MySQL           | `roster`         |
-| `DB_PASSWORD` | Contraseña del usuario     |                  |
+| Variable         | Descripción                                          | Ejemplo               |
+| ---------------- | ---------------------------------------------------- | --------------------- |
+| `PORT`           | Puerto del servidor                                  | `3000`                |
+| `DB_HOST`        | Servidor MySQL                                       | `127.0.0.1`           |
+| `DB_PORT`        | Puerto de MySQL                                      | `3306`                |
+| `DB_NAME`        | Nombre de la base de datos                           | `roster_api`          |
+| `DB_USER`        | Usuario de MySQL                                     | `roster`              |
+| `DB_PASSWORD`    | Contraseña del usuario de MySQL                      |                       |
+| `JWT_SECRET`     | Secreto para firmar los JWT (cadena larga aleatoria) |                       |
+| `COOKIE_MAX_AGE` | Duración de la sesión en milisegundos                | `3600000` (1 hora)    |
+| `ADMIN_EMAIL`    | Email del usuario administrador inicial              | `admin@example.com`   |
+| `ADMIN_PASSWORD` | Contraseña del administrador inicial                 |                       |
 
-**4. Crear las tablas con las migraciones**
+Para generar un `JWT_SECRET`:
 
-```bash
+```
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+
+Crea las tablas y el usuario administrador:
+
+```
 npm run db:migrate
+npm run seed:admin
 ```
 
-Crea las tablas `jugadores`, `rosters` y `roster_jugador`. Para revertirlas todas: `npm run db:undo`.
+**4. Instalar el frontend**
 
-**5. Iniciar el servidor**
-
-```bash
-npm run dev      # desarrollo (nodemon)
-# npm start      # producción
+```
+cd ../frontend
+npm install
 ```
 
-El servidor queda en `http://localhost:3000`.
+## Ejecución
 
-| Recurso                                | URL                                |
-| -------------------------------------- | ---------------------------------- |
-| API                                    | http://localhost:3000/api/v1       |
-| Documentación interactiva (Swagger UI) | http://localhost:3000/docs         |
-| Especificación OpenAPI en JSON         | http://localhost:3000/openapi.json |
+Se usan dos terminales.
 
-### Solución de problemas
+```
+# Terminal 1: backend en http://localhost:3000
+cd backend
+npm run dev
 
-- **`ECONNREFUSED` o "No se pudo conectar a MySQL":** el servicio no está activo. En Linux/WSL: `sudo service mysql start`.
-- **`Access denied`:** el usuario o la contraseña de `.env` no coinciden con los del `CREATE USER`.
-- **`Table ... doesn't exist`:** falta ejecutar `npm run db:migrate`.
-- **`npm install` falla al compilar algún paquete:** instala las herramientas de compilación (Linux/WSL: `sudo apt install build-essential python3`) y vuelve a intentarlo.
-
-## Uso
-
-Todos los endpoints cuelgan de `/api/v1` y trabajan con JSON.
-
-### Jugadores
-
-| Método | Endpoint                          | Descripción                                             |
-| ------ | --------------------------------- | ------------------------------------------------------- |
-| GET    | `/jugadores?rol=&estado=&search=` | Listar, filtrar por rol o estado, y buscar por nickname |
-| GET    | `/jugadores/{id}`                 | Detalle de un jugador                                   |
-| POST   | `/jugadores`                      | Crear jugador                                           |
-| PUT    | `/jugadores/{id}`                 | Actualizar jugador (reemplaza todos los campos)         |
-| DELETE | `/jugadores/{id}`                 | Eliminar jugador                                        |
-
-### Rosters
-
-| Método | Endpoint                    | Descripción                                   |
-| ------ | --------------------------- | --------------------------------------------- |
-| GET    | `/rosters?tipo=&temporada=` | Listar rosters (incluye `cantidad_jugadores`) |
-| GET    | `/rosters/{id}`             | Detalle del roster con sus jugadores          |
-| POST   | `/rosters`                  | Crear roster                                  |
-| PUT    | `/rosters/{id}`             | Actualizar roster                             |
-| DELETE | `/rosters/{id}`             | Eliminar roster (los jugadores permanecen)    |
-
-### Asignación de jugadores a rosters
-
-| Método | Endpoint                               | Descripción                              |
-| ------ | -------------------------------------- | ---------------------------------------- |
-| GET    | `/rosters/{id}/jugadores`              | Listar jugadores del roster              |
-| POST   | `/rosters/{id}/jugadores`              | Asignar jugador (`Titular` o `Suplente`) |
-| PUT    | `/rosters/{id}/jugadores/{id_jugador}` | Cambiar su rol en el roster              |
-| DELETE | `/rosters/{id}/jugadores/{id_jugador}` | Quitar jugador del roster                |
-
-### Auxiliares
-
-| Método | Endpoint        | Descripción                      |
-| ------ | --------------- | -------------------------------- |
-| GET    | `/health`       | Verificar que el API está activa |
-| GET    | `/roles`        | Top, Jungle, Mid, ADC, Support   |
-| GET    | `/estados`      | activo, inactivo                 |
-| GET    | `/tipos-roster` | Principal, Academy               |
-
-### Valores válidos
-
-- **rol**: `Top`, `Jungle`, `Mid`, `ADC`, `Support`
-- **estado**: `activo` (por defecto), `inactivo`
-- **tipo** de roster: `Principal`, `Academy`
-- **rol_en_roster**: `Titular`, `Suplente`
-- **juego**: `League of Legends` por defecto
-
-### Ejemplo de flujo
-
-```bash
-# 1. Crear un jugador
-curl -X POST localhost:3000/api/v1/jugadores \
-  -H "Content-Type: application/json" \
-  -d '{"nickname":"Faker","nombre_real":"Lee Sang-hyeok","pais":"Corea del Sur","rol":"Mid","estado":"activo"}'
-
-# 2. Crear un roster
-curl -X POST localhost:3000/api/v1/rosters \
-  -H "Content-Type: application/json" \
-  -d '{"nombre":"TL Principal","tipo":"Principal","temporada":"2026"}'
-
-# 3. Asignar el jugador (id 1) al roster (id 1) como titular
-curl -X POST localhost:3000/api/v1/rosters/1/jugadores \
-  -H "Content-Type: application/json" \
-  -d '{"id_jugador":1,"rol_en_roster":"Titular"}'
-
-# 4. Ver el roster con sus jugadores
-curl localhost:3000/api/v1/rosters/1
+# Terminal 2: frontend en http://localhost:5173
+cd frontend
+npm run dev
 ```
 
-También se pueden probar todos los endpoints desde http://localhost:3000/docs con el botón _Try it out_.
+Abre <http://localhost:5173> e inicia sesión con `ADMIN_EMAIL` y `ADMIN_PASSWORD`.
 
-## Reglas de negocio
+El servidor de desarrollo de Vite redirige las peticiones de `/api` al backend (proxy). Así el navegador trabaja con un solo origen y las cookies con `SameSite=Strict` funcionan sin configurar CORS.
 
-- El nickname de un jugador es único (sin distinguir mayúsculas de minúsculas).
-- Un roster puede tener como máximo 5 titulares.
-- No puede haber dos titulares con el mismo rol de jugador en un roster.
-- Un jugador puede estar en varios rosters, pero no repetido dentro del mismo.
-- Al eliminar un roster, los jugadores permanecen en el sistema.
+## Funcionalidades del frontend (rol Admin)
 
-## Códigos de respuesta
+- Inicio y cierre de sesión; la sesión se restaura al recargar la página.
+- **Jugadores:** listar, buscar por nickname, filtrar por rol y estado, crear, editar y eliminar.
+- **Rosters:** listar, filtrar por tipo y temporada, crear, editar y eliminar.
+- **Asignación:** asignar jugadores a un roster como titular o suplente, cambiar su rol y quitarlos.
+- Los errores del API (nickname duplicado, sexto titular, rol repetido, etc.) se muestran en pantalla.
+- Las rutas `/admin/*` solo son accesibles con una sesión de administrador.
 
-| Código | Uso                                                                                         |
-| ------ | ------------------------------------------------------------------------------------------- |
-| 200    | OK (GET, PUT)                                                                               |
-| 201    | Creado (POST)                                                                               |
-| 204    | Sin contenido (DELETE)                                                                      |
-| 400    | Datos inválidos                                                                             |
-| 404    | Recurso no encontrado                                                                       |
-| 409    | Conflicto (nickname duplicado, sexto titular, rol de titular repetido, jugador ya asignado) |
-| 500    | Error interno                                                                               |
+## Seguridad: JWT en cookie y protección CSRF
 
-Los errores responden con `{ "error": "mensaje" }`. En los errores de validación (400) se incluye además `detalles`.
+El esquema usa **double submit cookie**.
+
+1. `POST /api/v1/auth/login` valida email y contraseña (hash con bcrypt) contra la tabla `usuarios`.
+2. Si son correctos, el servidor genera un token CSRF aleatorio y responde con dos cookies:
+   - `jwt_token`: el JWT, con `HttpOnly` (JavaScript no puede leerla). Su payload incluye el id del usuario, su rol y el token CSRF.
+   - `csrf_token`: el mismo token CSRF, **legible** por JavaScript.
+   Ambas usan `SameSite=Strict`, y `Secure` en producción.
+3. En cada petición que modifica datos (POST, PUT, DELETE), el frontend lee la cookie `csrf_token` y la reenvía en el header `x-csrf-token`.
+4. El servidor acepta la petición solo si el header, la cookie y el valor dentro del JWT coinciden, y si el rol del usuario es `admin`. Las comparaciones usan `crypto.timingSafeEqual`.
+
+Un sitio externo puede provocar que el navegador envíe las cookies, pero no puede leer `csrf_token` ni agregar el header, así que el ataque CSRF falla.
+
+### Autorización por método
+
+| Petición                         | Requisito                    | Respuesta si falta       |
+| -------------------------------- | ---------------------------- | ------------------------ |
+| `GET` (lectura)                  | Ninguno (público)            |                          |
+| `POST` / `PUT` / `DELETE`        | Sesión válida                | 401                      |
+|                                  | Token CSRF válido            | 403                      |
+|                                  | Rol `admin`                  | 403                      |
+
+### Endpoints de autenticación
+
+| Método | Endpoint                | Descripción                                          |
+| ------ | ----------------------- | ---------------------------------------------------- |
+| POST   | `/api/v1/auth/login`    | Inicia sesión y establece las cookies                |
+| POST   | `/api/v1/auth/logout`   | Cierra la sesión (requiere token CSRF)               |
+| GET    | `/api/v1/auth/me`       | Devuelve el usuario de la sesión y su token CSRF     |
+
+### Limitaciones conocidas
+
+- El JWT no se puede revocar antes de expirar: el logout borra las cookies del navegador, pero el servidor no invalida el token. Una mejora sería usar JWT de vida corta con refresh tokens guardados en base de datos.
+- No hay límite de intentos de login (rate limiting).
 
 ## Pruebas
 
-Con el servidor corriendo y las migraciones aplicadas, en otra terminal:
+Con el backend corriendo y el administrador creado:
 
-```bash
+```
+cd backend
 npm test
 ```
 
-Ejecuta 51 pruebas sobre todos los endpoints, los códigos de estado y las reglas de negocio. Crea sus propios datos de prueba y los elimina al terminar.
+Ejecuta 64 pruebas: inicio de sesión, los endpoints, las reglas de negocio y los casos de seguridad (sin sesión, sin token CSRF, token incorrecto, logout).
 
-## Scripts disponibles
+## Tecnologías
 
-| Comando              | Descripción                               |
-| -------------------- | ----------------------------------------- |
-| `npm run dev`        | Inicia el servidor con recarga automática |
-| `npm start`          | Inicia el servidor                        |
-| `npm test`           | Ejecuta las pruebas de endpoints          |
-| `npm run db:migrate` | Aplica las migraciones pendientes         |
-| `npm run db:undo`    | Revierte todas las migraciones            |
-
-## Estructura del proyecto
-
-```
-.
-├── server.js            # arranque: conecta a MySQL e inicia el servidor
-├── openapi.yaml         # especificación OpenAPI
-├── endpoint-test.js     # pruebas de endpoints
-├── .env.example         # plantilla de variables de entorno
-├── .sequelizerc         # configuración del CLI de Sequelize
-├── migrations/          # migraciones: creación de tablas
-└── src/
-    ├── app.js           # configuración de Express, rutas y /docs
-    ├── db.js            # conexión Sequelize
-    ├── errors.js        # manejo de errores
-    ├── constantes.js    # roles, estados y tipos válidos
-    ├── config/
-    │   └── database.js  # configuración de conexión a MySQL
-    ├── routes/          # URLs hacia controllers
-    ├── controllers/     # entrada/salida HTTP y validación (Zod)
-    ├── services/        # reglas de negocio
-    └── models/          # modelos Sequelize y asociaciones
-```
-
-## Modelo de datos
-
-```
-jugadores
-├── id (PK)
-├── nickname (único)
-├── nombre_real
-├── pais
-├── rol (Top / Jungle / Mid / ADC / Support)
-└── estado (activo / inactivo)
-
-rosters
-├── id (PK)
-├── nombre
-├── juego
-├── tipo (Principal / Academy)
-└── temporada
-
-roster_jugador
-├── id (PK)
-├── id_roster (FK → rosters, ON DELETE CASCADE)
-├── id_jugador (FK → jugadores, ON DELETE CASCADE)
-├── rol_en_roster (Titular / Suplente)
-└── único (id_roster, id_jugador)
-```
+Node.js · Express · MySQL · Sequelize · Zod · jsonwebtoken · bcryptjs · cookie-parser · React · TypeScript · Vite · React Router · TanStack Query
