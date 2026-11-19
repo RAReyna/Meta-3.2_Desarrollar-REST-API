@@ -192,7 +192,7 @@ Con el servidor corriendo y las migraciones aplicadas, en otra terminal:
 npm test
 ```
 
-Ejecuta 64 pruebas sobre todos los endpoints, los códigos de estado y las reglas de negocio. Crea sus propios datos de prueba y los elimina al terminar.
+Ejecuta 76 pruebas sobre todos los endpoints, los códigos de estado, las reglas de negocio, el registro y los permisos del rol public. Elimina los jugadores y rosters que crea; las cuentas public de prueba quedan en la tabla `usuarios`.
 
 ## Scripts disponibles
 
@@ -255,14 +255,15 @@ roster_jugador
 
 ## Autenticación
 
-Los endpoints de lectura (`GET`) son públicos. Crear, modificar y eliminar (`POST`, `PUT`, `DELETE`) requieren una sesión de administrador, con el JWT en la cookie `jwt_token` y el token CSRF en el header `x-csrf-token`. Consulta el [README principal](../README.md) para el flujo completo y las variables de entorno nuevas (`JWT_SECRET`, `COOKIE_MAX_AGE`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`).
+Leer jugadores y rosters (`GET`) requiere una sesión de cualquier rol (admin o public); solo `/health` y los catálogos están abiertos. Crear, modificar y eliminar (`POST`, `PUT`, `DELETE`) requieren una sesión de administrador, con el JWT en la cookie `jwt_token` y el token CSRF en el header `x-csrf-token`. Consulta el [README principal](../README.md) para el flujo completo y las variables de entorno nuevas (`JWT_SECRET`, `COOKIE_MAX_AGE`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`).
 
 | Método | Endpoint        | Descripción                                      |
 | ------ | --------------- | ------------------------------------------------ |
 | POST   | `/auth/login`   | Inicia sesión (`{ "email", "password" }`)        |
+| POST   | `/auth/registro`| Crea una cuenta public y abre la sesión (`{ "email", "password" }`; 409 si el email existe) |
 | POST   | `/auth/logout`  | Cierra la sesión                                 |
 | GET    | `/auth/me`      | Usuario de la sesión actual                      |
 
 Códigos adicionales: **401** sin sesión o credenciales inválidas; **403** token CSRF inválido o rol sin permiso.
 
-Los ejemplos con `curl` de este README para crear datos necesitan ahora la cookie de sesión y el header CSRF.
+Los ejemplos con `curl` de este README necesitan la cookie de sesión; los que crean, modifican o eliminan datos también necesitan el header CSRF.
