@@ -26,9 +26,14 @@ export default function Layout() {
             </>
           ) : (
             usuario && (
-              <Link to="/jugadores" data-testid="nav-jugadores">
-                Jugadores
-              </Link>
+              <>
+                <Link to="/jugadores" data-testid="nav-jugadores">
+                  Jugadores
+                </Link>
+                <Link to="/rosters" data-testid="nav-rosters">
+                  Rosters
+                </Link>
+              </>
             )
           )}
         </nav>

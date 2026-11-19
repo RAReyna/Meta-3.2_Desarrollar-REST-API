@@ -5,6 +5,8 @@ import { destinoPorRol, useAuth } from "./auth";
 import Login from "./pages/Login";
 import Registro from "./pages/Registro";
 import JugadoresPublic from "./pages/public/Jugadores";
+import RostersPublic from "./pages/public/Rosters";
+import RosterDetallePublic from "./pages/public/RosterDetalle";
 import Jugadores from "./pages/admin/Jugadores";
 import Rosters from "./pages/admin/Rosters";
 import RosterDetalle from "./pages/admin/RosterDetalle";
@@ -24,6 +26,8 @@ export default function App() {
         <Route path="registro" element={<Registro />} />
         <Route element={<RutaProtegida />}>
           <Route path="jugadores" element={<JugadoresPublic />} />
+          <Route path="rosters" element={<RostersPublic />} />
+          <Route path="rosters/:id" element={<RosterDetallePublic />} />
         </Route>
         <Route element={<RutaProtegida rol="admin" />}>
           <Route path="admin/jugadores" element={<Jugadores />} />
