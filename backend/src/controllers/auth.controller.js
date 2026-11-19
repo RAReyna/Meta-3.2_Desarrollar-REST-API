@@ -33,7 +33,7 @@ async function login(req, res) {
   });
   const ok = await bcrypt.compare(
     password,
-    usuario ? usuario.password_hash : HASH_FALSO,
+    usuario?.password_hash || HASH_FALSO,
   );
   if (!usuario || !ok) {
     return res.status(401).json({ error: "Credenciales inválidas" });

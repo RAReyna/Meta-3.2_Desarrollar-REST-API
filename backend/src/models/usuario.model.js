@@ -6,7 +6,8 @@ const Usuario = sequelize.define(
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     email: { type: DataTypes.STRING(255), allowNull: false, unique: true },
-    password_hash: { type: DataTypes.STRING(255), allowNull: false },
+    password_hash: { type: DataTypes.STRING(255), allowNull: true },
+    google_id: { type: DataTypes.STRING(64), allowNull: true, unique: true },
     rol: {
       type: DataTypes.ENUM("admin", "public"),
       allowNull: false,
