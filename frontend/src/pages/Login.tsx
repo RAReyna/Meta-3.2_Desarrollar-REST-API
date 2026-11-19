@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { ApiError } from "../api";
-import { useAuth } from "../auth";
+import { destinoPorRol, useAuth } from "../auth";
 
 export default function Login() {
   const { usuario, login } = useAuth();
@@ -11,17 +11,14 @@ export default function Login() {
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
 
-  if (usuario?.rol === "admin") {
-    return <Navigate to="/admin/jugadores" replace />;
-  }
+  if (usuario) return <Navigate to={destinoPorRol(usuario)} replace />;
 
   async function enviar(e: FormEvent) {
     e.preventDefault();
     setError("");
     setEnviando(true);
     try {
-      await login(email, password);
-      navigate("/admin/jugadores");
+      navigate(destinoPorRol(await login(email, password)));
     } catch (err) {
       setError(
         err instanceof ApiError && err.status === 401

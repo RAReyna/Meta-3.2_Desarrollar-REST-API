@@ -11,7 +11,7 @@ import type { Usuario } from "./types";
 interface AuthCtx {
   usuario: Usuario | null;
   cargando: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<Usuario>;
   logout: () => Promise<void>;
 }
 
@@ -36,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
     });
     setUsuario(r.usuario);
+    return r.usuario;
   }
 
   async function logout() {
@@ -52,6 +53,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </Ctx.Provider>
   );
+}
+
+// Página de inicio según el rol de la sesión.
+// eslint-disable-next-line react-refresh/only-export-components
+export function destinoPorRol(usuario: Usuario | null): string {
+  if (!usuario) return "/login";
+  return usuario.rol === "admin" ? "/admin/jugadores" : "/jugadores";
 }
 
 // eslint-disable-next-line react-refresh/only-export-components

@@ -15,7 +15,7 @@ export default function Layout() {
       <header className="barra">
         <strong>Rosters eSports</strong>
         <nav>
-          {usuario?.rol === "admin" && (
+          {usuario?.rol === "admin" ? (
             <>
               <Link to="/admin/jugadores" data-testid="nav-jugadores">
                 Jugadores
@@ -24,6 +24,12 @@ export default function Layout() {
                 Rosters
               </Link>
             </>
+          ) : (
+            usuario && (
+              <Link to="/jugadores" data-testid="nav-jugadores">
+                Jugadores
+              </Link>
+            )
           )}
         </nav>
         <div className="sesion">
