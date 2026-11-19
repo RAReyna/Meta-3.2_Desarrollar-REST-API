@@ -69,3 +69,13 @@ export async function limpiar(api: SesionApi) {
   const jugadores: { id: number }[] = await api.get(`/jugadores?search=${S}`);
   for (const j of jugadores) await api.del(`/jugadores/${j.id}`);
 }
+
+// Crea una cuenta public por API (registro abierto) y devuelve sus credenciales.
+export async function crearPublic(nombre: string) {
+  const cuenta = { email: `e2e-${S}-${nombre}@example.com`, password: "Public12345" };
+  const ctx = await request.newContext({ baseURL: BASE });
+  const r = await ctx.post(`${API}/auth/registro`, { data: cuenta });
+  expect(r.status(), "registro por API").toBe(201);
+  await ctx.dispose();
+  return cuenta;
+}
