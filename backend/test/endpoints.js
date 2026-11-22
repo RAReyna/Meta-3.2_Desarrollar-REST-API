@@ -180,8 +180,8 @@ const csrfFalso = cliente({ cookie: sesionAdmin.cookie, csrf: "token-incorrecto"
 await espera(401, anonimo.post("/auth/login", { email: EMAIL, password: "incorrecta" }), "contraseña incorrecta");
 await espera(401, anonimo.post("/auth/login", { email: "nadie@example.com", password: "x" }), "email inexistente");
 await espera(400, anonimo.post("/auth/login", { email: "no-es-email" }), "datos inválidos");
-await espera(401, anonimo.get("/jugadores"), "sin sesión");
-await espera(401, anonimo.get("/rosters"), "sin sesión");
+await espera(200, anonimo.get("/jugadores"), "sin sesión: leer es público");
+await espera(200, anonimo.get("/rosters"), "sin sesión: leer es público");
 await espera(401, anonimo.post("/jugadores", nuevo), "sin sesión");
 await espera(401, anonimo.del("/jugadores/999999"), "sin sesión");
 await espera(403, sinCsrf.post("/jugadores", nuevo), "sin token CSRF");

@@ -50,10 +50,10 @@ const METODOS_DE_LECTURA = ["GET", "HEAD", "OPTIONS"];
 const soloEscrituras = (middleware) => (req, res, next) =>
   METODOS_DE_LECTURA.includes(req.method) ? next() : middleware(req, res, next);
 
-// Leer solo exige sesión. Escribir exige además token CSRF y rol admin:
-// el rol public solo puede leer.
-export const protegerApi = [
-  autenticar,
+// Leer es público: cualquiera puede consultar jugadores y rosters sin cuenta.
+// Escribir exige sesión, token CSRF y rol admin.
+export const protegerEscrituras = [
+  soloEscrituras(autenticar),
   soloEscrituras(verificarCsrf),
   soloEscrituras(requerirAdmin),
 ];

@@ -295,8 +295,17 @@ x-csrf-token: {{registro.response.body.$.csrfToken}}
 POST {{baseUrl}}/auth/logout
 x-csrf-token: {{registro.response.body.$.csrfToken}}
 
-### Sin sesión → 401
+### Sin sesión, leer sigue funcionando → 200 (la consulta es pública)
 GET {{baseUrl}}/jugadores
+
+### Sin sesión no se puede escribir → 401
+POST {{baseUrl}}/jugadores
+Content-Type: application/json
+
+{
+  "nickname": "SinSesion",
+  "rol": "Top"
+}
 
 ### Sin sesión → 401
 GET {{baseUrl}}/auth/me

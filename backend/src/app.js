@@ -4,7 +4,7 @@ import cookieParser from "cookie-parser";
 import swaggerUi from "swagger-ui-express";
 import { load } from "js-yaml";
 import { manejarErrores } from "./errors.js";
-import { protegerApi } from "./middleware/auth.js";
+import { protegerEscrituras } from "./middleware/auth.js";
 import authRoutes from "./routes/auth.routes.js";
 import auxiliaresRoutes from "./routes/auxiliares.routes.js";
 import jugadoresRoutes from "./routes/jugadores.routes.js";
@@ -23,12 +23,12 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
-// Sin protección: login/registro, y health + catálogos (no contienen datos).
+// Login, registro, sesión actual, health y catálogos.
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1", auxiliaresRoutes);
 
-// A partir de aquí todo exige sesión; POST/PUT/DELETE además admin + CSRF.
-app.use("/api/v1", protegerApi);
+// Jugadores y rosters: leer es público; POST/PUT/DELETE exigen admin + CSRF.
+app.use("/api/v1", protegerEscrituras);
 app.use("/api/v1", jugadoresRoutes);
 app.use("/api/v1", rostersRoutes);
 

@@ -4,7 +4,8 @@ API REST para gestionar jugadores de eSports y armar rosters de equipos (League 
 Proyecto de Desarrollo Web, UABC.
 
 - Node.js con **ES modules** (`import` / `export`), Express 5 y **MySQL** con consultas SQL directas (`mysql2`).
-- Autenticación con JWT en cookie HttpOnly y protección CSRF (double submit cookie).
+- Consulta pública: cualquiera puede ver jugadores y rosters sin cuenta.
+- Solo el administrador modifica datos: JWT en cookie HttpOnly y protección CSRF (double submit cookie).
 - Validación con Zod y documentación OpenAPI con Swagger UI.
 
 ## Estructura
@@ -208,7 +209,11 @@ Asignar un jugador y cambiar su rol se hacen en una transacción que bloquea el 
 
 ## Seguridad: JWT en cookie y protección CSRF
 
-El esquema usa **double submit cookie**.
+Leer jugadores y rosters es **público**: no hace falta cuenta. Crear, modificar y eliminar
+requiere una sesión de administrador. Las cuentas `public` (registro abierto) solo pueden leer,
+igual que un visitante sin cuenta.
+
+Las escrituras usan el esquema **double submit cookie**.
 
 1. `POST /auth/login` valida email y contraseña (hash con bcrypt) contra la tabla `usuarios`. `POST /auth/registro` crea la cuenta y abre la sesión de la misma forma; el rol siempre es `public` (un `rol` enviado en el body se ignora).
 2. Si son correctos, el servidor genera un token CSRF aleatorio y responde con dos cookies:
@@ -224,7 +229,7 @@ Un sitio externo puede provocar que el navegador envíe las cookies, pero no pue
 | ------------------------------- | ------------------------------ | ------------------ |
 | `/auth/login`, `/auth/registro` | Ninguno                        |                    |
 | `/health` y catálogos           | Ninguno                        |                    |
-| `GET` de jugadores y rosters    | Sesión válida (admin o public) | 401                |
+| `GET` de jugadores y rosters    | Ninguno (público)              |                    |
 | `POST` / `PUT` / `DELETE`       | Sesión válida                  | 401                |
 |                                 | Token CSRF válido              | 403                |
 |                                 | Rol `admin`                    | 403                |
@@ -243,8 +248,8 @@ curl -b cookies.txt -X POST localhost:3000/api/v1/jugadores \
   -H "x-csrf-token: <csrfToken del paso 1>" \
   -d '{"nickname":"Faker","nombre_real":"Lee Sang-hyeok","pais":"Corea del Sur","rol":"Mid"}'
 
-# 3. Leer no necesita el token CSRF, solo la sesión
-curl -b cookies.txt localhost:3000/api/v1/jugadores
+# 3. Leer no necesita sesión
+curl localhost:3000/api/v1/jugadores
 ```
 
 ### Limitaciones conocidas
