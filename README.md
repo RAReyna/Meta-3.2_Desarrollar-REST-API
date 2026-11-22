@@ -15,6 +15,7 @@ Proyecto de Desarrollo Web, UABC.
 └── backend/
     ├── server.js            # arranque: verifica MySQL e inicia el servidor
     ├── openapi.yaml         # especificación OpenAPI (visible en /docs)
+    ├── api.http             # peticiones para probar a mano (REST Client)
     ├── .env.example         # plantilla de variables de entorno
     ├── db/
     │   └── schema.sql       # tablas de la base de datos
@@ -183,7 +184,13 @@ Todos cuelgan de `/api/v1` y trabajan con JSON.
 - **rol_en_roster**: `Titular`, `Suplente`
 - **juego**: `League of Legends` por defecto
 
-También se pueden probar todos los endpoints desde http://localhost:3000/docs con el botón _Try it out_.
+### Probar los endpoints a mano
+
+- **`backend/api.http`**: todas las peticiones, en orden, para la extensión
+  [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) de VS Code.
+  Haz clic en _Send Request_ sobre cada una de arriba hacia abajo: el login guarda la sesión y las
+  siguientes reutilizan el token CSRF y los ids creados. El email y la contraseña del admin se leen del `.env`.
+- **Swagger UI**: http://localhost:3000/docs, con el botón _Try it out_.
 
 ## Reglas de negocio
 

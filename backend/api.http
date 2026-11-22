@@ -1,0 +1,302 @@
+# Peticiones para probar el API a mano con la extensión REST Client de VS Code.
+# Haz clic en "Send Request" sobre cada petición, en orden de arriba hacia abajo:
+# las de abajo usan la sesión y los ids que devuelven las de arriba.
+#
+# Requisitos: servidor corriendo (npm run dev) y el admin creado (npm run seed:admin).
+# El email y la contraseña del admin se leen del .env de esta carpeta.
+# REST Client guarda las cookies de sesión automáticamente.
+
+@baseUrl = http://localhost:3000/api/v1
+@csrf = {{login.response.body.$.csrfToken}}
+@jugadorId = {{crearJugador.response.body.$.id}}
+@jugador2Id = {{crearJugador2.response.body.$.id}}
+@rosterId = {{crearRoster.response.body.$.id}}
+
+
+### ==================== Auxiliares (sin sesión) ====================
+
+### Health
+GET {{baseUrl}}/health
+
+### Roles de jugador
+GET {{baseUrl}}/roles
+
+### Estados de jugador
+GET {{baseUrl}}/estados
+
+### Tipos de roster
+GET {{baseUrl}}/tipos-roster
+
+
+### ==================== Sesión de admin ====================
+
+### Login (guarda las cookies; el token CSRF se toma de esta respuesta)
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{$dotenv ADMIN_EMAIL}}",
+  "password": "{{$dotenv ADMIN_PASSWORD}}"
+}
+
+### Usuario de la sesión actual
+GET {{baseUrl}}/auth/me
+
+
+### ==================== Jugadores ====================
+
+### Crear jugador (nickname aleatorio para poder repetir la prueba)
+# @name crearJugador
+POST {{baseUrl}}/jugadores
+Content-Type: application/json
+x-csrf-token: {{csrf}}
+
+{
+  "nickname": "Faker{{$randomInt 1000 99999}}",
+  "nombre_real": "Lee Sang-hyeok",
+  "pais": "Corea del Sur",
+  "rol": "Mid"
+}
+
+### Crear otro jugador con el mismo rol (para probar las reglas del roster)
+# @name crearJugador2
+POST {{baseUrl}}/jugadores
+Content-Type: application/json
+x-csrf-token: {{csrf}}
+
+{
+  "nickname": "Chovy{{$randomInt 1000 99999}}",
+  "rol": "Mid"
+}
+
+### Listar todos los jugadores
+GET {{baseUrl}}/jugadores
+
+### Filtrar por rol y estado, y buscar por nickname
+GET {{baseUrl}}/jugadores?rol=Mid&estado=activo&search=Faker
+
+### Detalle de un jugador
+GET {{baseUrl}}/jugadores/{{jugadorId}}
+
+### Actualizar jugador (PUT reemplaza todos los campos)
+PUT {{baseUrl}}/jugadores/{{jugadorId}}
+Content-Type: application/json
+x-csrf-token: {{csrf}}
+
+{
+  "nickname": "{{crearJugador.response.body.$.nickname}}",
+  "nombre_real": "Lee Sang-hyeok",
+  "pais": "Corea del Sur",
+  "rol": "Mid",
+  "estado": "inactivo"
+}
+
+
+### ==================== Rosters ====================
+
+### Crear roster
+# @name crearRoster
+POST {{baseUrl}}/rosters
+Content-Type: application/json
+x-csrf-token: {{csrf}}
+
+{
+  "nombre": "T1 Principal",
+  "tipo": "Principal",
+  "temporada": "2026"
+}
+
+### Listar rosters (incluye cantidad_jugadores)
+GET {{baseUrl}}/rosters
+
+### Filtrar por tipo y temporada
+GET {{baseUrl}}/rosters?tipo=Principal&temporada=2026
+
+### Detalle del roster con sus jugadores
+GET {{baseUrl}}/rosters/{{rosterId}}
+
+### Actualizar roster
+PUT {{baseUrl}}/rosters/{{rosterId}}
+Content-Type: application/json
+x-csrf-token: {{csrf}}
+
+{
+  "nombre": "T1 Principal",
+  "juego": "League of Legends",
+  "tipo": "Principal",
+  "temporada": "2026-2"
+}
+
+
+### ==================== Asignación de jugadores ====================
+
+### Asignar jugador como titular → 201
+POST {{baseUrl}}/rosters/{{rosterId}}/jugadores
+Content-Type: application/json
+x-csrf-token: {{csrf}}
+
+{
+  "id_jugador": {{jugadorId}},
+  "rol_en_roster": "Titular"
+}
+
+### Otro titular con el mismo rol (Mid) → 409 (RN-03)
+POST {{baseUrl}}/rosters/{{rosterId}}/jugadores
+Content-Type: application/json
+x-csrf-token: {{csrf}}
+
+{
+  "id_jugador": {{jugador2Id}},
+  "rol_en_roster": "Titular"
+}
+
+### El mismo jugador como suplente → 201
+POST {{baseUrl}}/rosters/{{rosterId}}/jugadores
+Content-Type: application/json
+x-csrf-token: {{csrf}}
+
+{
+  "id_jugador": {{jugador2Id}},
+  "rol_en_roster": "Suplente"
+}
+
+### Asignar otra vez al mismo jugador → 409 (ya está en el roster)
+POST {{baseUrl}}/rosters/{{rosterId}}/jugadores
+Content-Type: application/json
+x-csrf-token: {{csrf}}
+
+{
+  "id_jugador": {{jugadorId}},
+  "rol_en_roster": "Suplente"
+}
+
+### Listar jugadores del roster
+GET {{baseUrl}}/rosters/{{rosterId}}/jugadores
+
+### Cambiar el titular a suplente → 200
+PUT {{baseUrl}}/rosters/{{rosterId}}/jugadores/{{jugadorId}}
+Content-Type: application/json
+x-csrf-token: {{csrf}}
+
+{
+  "rol_en_roster": "Suplente"
+}
+
+### Ahora el otro Mid sí puede ser titular → 200
+PUT {{baseUrl}}/rosters/{{rosterId}}/jugadores/{{jugador2Id}}
+Content-Type: application/json
+x-csrf-token: {{csrf}}
+
+{
+  "rol_en_roster": "Titular"
+}
+
+### Quitar jugador del roster → 204
+DELETE {{baseUrl}}/rosters/{{rosterId}}/jugadores/{{jugadorId}}
+x-csrf-token: {{csrf}}
+
+
+### ==================== Errores esperados ====================
+
+### 400 - rol inválido
+POST {{baseUrl}}/jugadores
+Content-Type: application/json
+x-csrf-token: {{csrf}}
+
+{
+  "nickname": "Prueba",
+  "rol": "Mago"
+}
+
+### 400 - roster sin nombre y con tipo inválido
+POST {{baseUrl}}/rosters
+Content-Type: application/json
+x-csrf-token: {{csrf}}
+
+{
+  "nombre": "",
+  "tipo": "Otro"
+}
+
+### 409 - nickname duplicado (RN-01)
+POST {{baseUrl}}/jugadores
+Content-Type: application/json
+x-csrf-token: {{csrf}}
+
+{
+  "nickname": "{{crearJugador.response.body.$.nickname}}",
+  "rol": "Top"
+}
+
+### 404 - jugador que no existe
+GET {{baseUrl}}/jugadores/999999
+
+### 404 - id que no es número
+GET {{baseUrl}}/rosters/abc
+
+### 403 - escribir sin el header x-csrf-token
+POST {{baseUrl}}/jugadores
+Content-Type: application/json
+
+{
+  "nickname": "SinCsrf",
+  "rol": "Top"
+}
+
+
+### ==================== Limpieza ====================
+
+### Eliminar roster (los jugadores permanecen) → 204
+DELETE {{baseUrl}}/rosters/{{rosterId}}
+x-csrf-token: {{csrf}}
+
+### El jugador sigue existiendo → 200
+GET {{baseUrl}}/jugadores/{{jugadorId}}
+
+### Eliminar jugadores → 204
+DELETE {{baseUrl}}/jugadores/{{jugadorId}}
+x-csrf-token: {{csrf}}
+
+###
+DELETE {{baseUrl}}/jugadores/{{jugador2Id}}
+x-csrf-token: {{csrf}}
+
+
+### ==================== Cuenta public (solo lectura) ====================
+
+### Registro: crea una cuenta public y abre su sesión (reemplaza la del admin)
+# @name registro
+POST {{baseUrl}}/auth/registro
+Content-Type: application/json
+
+{
+  "email": "public{{$randomInt 1000 99999}}@example.com",
+  "password": "Public12345"
+}
+
+### Public puede leer → 200
+GET {{baseUrl}}/jugadores
+
+### Public no puede escribir, aunque mande su token CSRF → 403
+POST {{baseUrl}}/jugadores
+Content-Type: application/json
+x-csrf-token: {{registro.response.body.$.csrfToken}}
+
+{
+  "nickname": "NoPermitido",
+  "rol": "Top"
+}
+
+
+### ==================== Cerrar sesión ====================
+
+### Logout → 204 (borra las cookies)
+POST {{baseUrl}}/auth/logout
+x-csrf-token: {{registro.response.body.$.csrfToken}}
+
+### Sin sesión → 401
+GET {{baseUrl}}/jugadores
+
+### Sin sesión → 401
+GET {{baseUrl}}/auth/me
