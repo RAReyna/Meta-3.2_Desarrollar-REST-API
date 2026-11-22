@@ -21,7 +21,8 @@ Proyecto de Desarrollo Web, UABC.
     │   └── schema.sql       # tablas de la base de datos
     ├── scripts/
     │   ├── crear-tablas.js  # npm run db:init
-    │   └── crear-admin.js   # npm run seed:admin
+    │   ├── crear-admin.js   # npm run seed:admin
+    │   └── llenar-datos.js  # npm run seed:datos
     ├── test/
     │   └── endpoints.js     # npm test
     └── src/
@@ -93,6 +94,7 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 ```bash
 npm run db:init      # ejecuta db/schema.sql (no toca las tablas que ya existen)
 npm run seed:admin   # crea el admin, o actualiza su contraseña si ya existe
+npm run seed:datos   # opcional: jugadores y rosters de ejemplo (T1, Gen.G, G2...)
 ```
 
 **5. Iniciar el servidor**
@@ -124,6 +126,7 @@ npm start      # sin recarga automática
 | `npm test`           | Ejecuta las pruebas (con el servidor corriendo) |
 | `npm run db:init`    | Crea las tablas de `db/schema.sql`             |
 | `npm run seed:admin` | Crea o actualiza el usuario administrador      |
+| `npm run seed:datos` | Agrega jugadores y rosters de ejemplo (no duplica si se corre otra vez) |
 
 ## Endpoints
 

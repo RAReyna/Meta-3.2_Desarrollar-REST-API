@@ -9,7 +9,8 @@
     "dev": "node --watch server.js",
     "test": "node test/endpoints.js",
     "db:init": "node scripts/crear-tablas.js",
-    "seed:admin": "node scripts/crear-admin.js"
+    "seed:admin": "node scripts/crear-admin.js",
+    "seed:datos": "node scripts/llenar-datos.js"
   },
   "license": "ISC",
   "dependencies": {
