@@ -1,7 +1,7 @@
-const { z } = require("zod");
-const service = require("../services/rosters.service");
-const { TIPOS_ROSTER, ROLES_EN_ROSTER } = require("../constantes");
-const { idValido } = require("../errors");
+import { z } from "zod";
+import * as service from "../services/rosters.service.js";
+import { TIPOS_ROSTER, ROLES_EN_ROSTER } from "../constantes.js";
+import { idValido } from "../errors.js";
 
 const rosterSchema = z.object({
   nombre: z.string().trim().min(1),
@@ -22,56 +22,54 @@ const asignacionSchema = z.object({
 
 const cambioRolSchema = z.object({ rol_en_roster: z.enum(ROLES_EN_ROSTER) });
 
-exports.listar = async (req, res) =>
+// ---- Rosters ----
+
+export async function listar(req, res) {
   res.json(await service.listar(filtrosSchema.parse(req.query)));
+}
 
-exports.obtener = async (req, res) =>
+export async function obtener(req, res) {
   res.json(await service.obtener(idValido(req.params.id)));
+}
 
-exports.crear = async (req, res) =>
-  res.status(201).json(await service.crear(rosterSchema.parse(req.body)));
+export async function crear(req, res) {
+  const datos = rosterSchema.parse(req.body);
+  res.status(201).json(await service.crear(datos));
+}
 
-exports.actualizar = async (req, res) =>
-  res.json(
-    await service.actualizar(
-      idValido(req.params.id),
-      rosterSchema.parse(req.body),
-    ),
-  );
+export async function actualizar(req, res) {
+  const id = idValido(req.params.id);
+  const datos = rosterSchema.parse(req.body);
+  res.json(await service.actualizar(id, datos));
+}
 
-exports.eliminar = async (req, res) => {
+export async function eliminar(req, res) {
   await service.eliminar(idValido(req.params.id));
   res.status(204).end();
-};
+}
 
-// ---- Asignación ----
+// ---- Asignación de jugadores ----
 
-exports.listarJugadores = async (req, res) =>
+export async function listarJugadores(req, res) {
   res.json(await service.listarJugadores(idValido(req.params.id)));
+}
 
-exports.asignar = async (req, res) =>
-  res
-    .status(201)
-    .json(
-      await service.asignar(
-        idValido(req.params.id),
-        asignacionSchema.parse(req.body),
-      ),
-    );
+export async function asignar(req, res) {
+  const idRoster = idValido(req.params.id);
+  const datos = asignacionSchema.parse(req.body);
+  res.status(201).json(await service.asignar(idRoster, datos));
+}
 
-exports.cambiarRol = async (req, res) =>
-  res.json(
-    await service.cambiarRol(
-      idValido(req.params.id),
-      idValido(req.params.id_jugador),
-      cambioRolSchema.parse(req.body).rol_en_roster,
-    ),
-  );
+export async function cambiarRol(req, res) {
+  const idRoster = idValido(req.params.id);
+  const idJugador = idValido(req.params.id_jugador);
+  const { rol_en_roster } = cambioRolSchema.parse(req.body);
+  res.json(await service.cambiarRol(idRoster, idJugador, rol_en_roster));
+}
 
-exports.quitar = async (req, res) => {
-  await service.quitar(
-    idValido(req.params.id),
-    idValido(req.params.id_jugador),
-  );
+export async function quitar(req, res) {
+  const idRoster = idValido(req.params.id);
+  const idJugador = idValido(req.params.id_jugador);
+  await service.quitar(idRoster, idJugador);
   res.status(204).end();
-};
+}

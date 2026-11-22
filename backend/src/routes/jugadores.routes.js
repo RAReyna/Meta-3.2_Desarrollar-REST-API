@@ -1,10 +1,12 @@
-const router = require('express').Router();
-const c = require('../controllers/jugadores.controller');
+import { Router } from "express";
+import * as jugadores from "../controllers/jugadores.controller.js";
 
-router.get('/jugadores', c.listar);
-router.get('/jugadores/:id', c.obtener);
-router.post('/jugadores', c.crear);
-router.put('/jugadores/:id', c.actualizar);
-router.delete('/jugadores/:id', c.eliminar);
+const router = Router();
 
-module.exports = router;
+router.get("/jugadores", jugadores.listar);
+router.get("/jugadores/:id", jugadores.obtener);
+router.post("/jugadores", jugadores.crear);
+router.put("/jugadores/:id", jugadores.actualizar);
+router.delete("/jugadores/:id", jugadores.eliminar);
+
+export default router;

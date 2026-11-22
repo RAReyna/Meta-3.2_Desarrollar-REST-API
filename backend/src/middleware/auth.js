@@ -1,8 +1,8 @@
-const crypto = require("crypto");
-const jwt = require("jsonwebtoken");
+import crypto from "node:crypto";
+import jwt from "jsonwebtoken";
+import { HttpError } from "../errors.js";
 
-const METODOS_SEGUROS = new Set(["GET", "HEAD", "OPTIONS"]);
-
+// Compara dos textos en tiempo constante (no filtra información por la demora).
 function iguales(a, b) {
   if (typeof a !== "string" || typeof b !== "string") return false;
   const bufA = Buffer.from(a);
@@ -10,18 +10,16 @@ function iguales(a, b) {
   return bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB);
 }
 
-// Verifica el JWT de la cookie HttpOnly.
-function autenticar(req, res, next) {
-  const token = req.cookies?.jwt_token;
-  if (!token) return res.status(401).json({ error: "No autenticado" });
+// Verifica el JWT de la cookie HttpOnly y deja el usuario en req.usuario.
+export function autenticar(req, res, next) {
+  const token = req.cookies.jwt_token;
+  if (!token) throw new HttpError(401, "No autenticado");
 
   let payload;
   try {
-    payload = jwt.verify(token, process.env.JWT_SECRET, {
-      algorithms: ["HS256"],
-    });
+    payload = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
   } catch {
-    return res.status(401).json({ error: "Sesión inválida o expirada" });
+    throw new HttpError(401, "Sesión inválida o expirada");
   }
 
   req.usuario = { id: Number(payload.sub), rol: payload.rol };
@@ -29,38 +27,33 @@ function autenticar(req, res, next) {
   next();
 }
 
-// Double submit: header == cookie legible == claim dentro del JWT.
-function verificarCsrf(req, res, next) {
+// Double submit: header == cookie legible == valor guardado dentro del JWT.
+export function verificarCsrf(req, res, next) {
   const header = req.get("x-csrf-token");
-  const cookie = req.cookies?.csrf_token;
+  const cookie = req.cookies.csrf_token;
   if (!iguales(header, req.csrfEnJwt) || !iguales(header, cookie)) {
-    return res.status(403).json({ error: "Token CSRF inválido" });
+    throw new HttpError(403, "Token CSRF inválido");
   }
   next();
 }
 
-function requerirAdmin(req, res, next) {
-  if (req.usuario?.rol !== "admin") {
-    return res.status(403).json({ error: "Se requiere rol admin" });
+export function requerirAdmin(req, res, next) {
+  if (req.usuario.rol !== "admin") {
+    throw new HttpError(403, "Se requiere rol admin");
   }
   next();
 }
 
-// Aplica un middleware solo a métodos que modifican datos.
-const soloEscrituras = (mw) => (req, res, next) =>
-  METODOS_SEGUROS.has(req.method) ? next() : mw(req, res, next);
+const METODOS_DE_LECTURA = ["GET", "HEAD", "OPTIONS"];
 
-// Toda petición exige sesión (admin o public). Además, POST/PUT/DELETE
-// exigen token CSRF y rol admin: el rol public solo puede leer.
-const protegerApi = [
+// Envuelve un middleware para que solo se aplique a POST/PUT/DELETE.
+const soloEscrituras = (middleware) => (req, res, next) =>
+  METODOS_DE_LECTURA.includes(req.method) ? next() : middleware(req, res, next);
+
+// Leer solo exige sesión. Escribir exige además token CSRF y rol admin:
+// el rol public solo puede leer.
+export const protegerApi = [
   autenticar,
   soloEscrituras(verificarCsrf),
   soloEscrituras(requerirAdmin),
 ];
-
-module.exports = {
-  autenticar,
-  verificarCsrf,
-  requerirAdmin,
-  protegerApi,
-};

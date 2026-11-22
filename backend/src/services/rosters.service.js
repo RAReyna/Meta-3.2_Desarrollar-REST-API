@@ -1,142 +1,165 @@
-const { Op, fn, col } = require("sequelize");
-const { Roster, RosterJugador } = require("../models/roster.model");
-const Jugador = require("../models/jugador.model");
-const { HttpError } = require("../errors");
+import pool, { enTransaccion, armarWhere } from "../db.js";
+import { HttpError } from "../errors.js";
 
-const incluirJugador = [{ model: Jugador, as: "jugador" }];
+const MAX_TITULARES = 5;
 
-const aEntrada = (fila) => ({
-  id: fila.jugador.id,
-  nickname: fila.jugador.nickname,
-  rol: fila.jugador.rol,
-  rol_en_roster: fila.rol_en_roster,
-});
+// Las funciones auxiliares reciben `db`: el pool, o la conexión de una
+// transacción cuando la consulta tiene que formar parte de ella.
 
-const buscar = async (id) => {
-  const roster = await Roster.findByPk(id);
+async function buscarRoster(db, id) {
+  const sql = "SELECT * FROM rosters WHERE id = ?";
+  const [[roster]] = await db.query(sql, [id]);
   if (!roster) throw new HttpError(404, "Roster no encontrado");
   return roster;
-};
+}
 
-const buscarAsignacion = async (idRoster, idJugador) => {
-  const fila = await RosterJugador.findOne({
-    where: { id_roster: idRoster, id_jugador: idJugador },
-  });
-  if (!fila) throw new HttpError(404, "El jugador no está en este roster");
-  return fila;
-};
+// Igual que buscarRoster, pero bloquea la fila hasta el fin de la transacción:
+// otra petición sobre el mismo roster espera su turno.
+async function bloquearRoster(db, id) {
+  const sql = "SELECT id FROM rosters WHERE id = ? FOR UPDATE";
+  const [[roster]] = await db.query(sql, [id]);
+  if (!roster) throw new HttpError(404, "Roster no encontrado");
+}
 
-const jugadoresDe = async (idRoster) => {
-  const filas = await RosterJugador.findAll({
-    where: { id_roster: idRoster },
-    include: incluirJugador,
-    order: [["id", "ASC"]],
-  });
-  return filas.map(aEntrada);
-};
+async function buscarJugador(db, id) {
+  const sql = "SELECT * FROM jugadores WHERE id = ?";
+  const [[jugador]] = await db.query(sql, [id]);
+  if (!jugador) throw new HttpError(404, "Jugador no encontrado");
+  return jugador;
+}
 
-const entradaDe = async (idRoster, idJugador) => {
-  const fila = await RosterJugador.findOne({
-    where: { id_roster: idRoster, id_jugador: idJugador },
-    include: incluirJugador,
-  });
-  return aEntrada(fila);
-};
+async function estaAsignado(db, idRoster, idJugador) {
+  const sql = "SELECT id FROM roster_jugador WHERE id_roster = ? AND id_jugador = ?";
+  const [[asignacion]] = await db.query(sql, [idRoster, idJugador]);
+  return Boolean(asignacion);
+}
 
-// RN-02 (máx. 5 titulares) y RN-03 (no repetir rol entre titulares)
-const validarTitular = async (idRoster, jugador, excluirIdJugador = 0) => {
-  const titulares = await RosterJugador.findAll({
-    where: {
-      id_roster: idRoster,
-      rol_en_roster: "Titular",
-      id_jugador: { [Op.ne]: excluirIdJugador },
-    },
-    include: incluirJugador,
-  });
-  if (titulares.length >= 5)
+// Jugadores del roster, cada uno con su rol en él.
+const SELECT_JUGADORES = `
+  SELECT j.id, j.nickname, j.rol, rj.rol_en_roster
+  FROM roster_jugador rj
+  JOIN jugadores j ON j.id = rj.id_jugador`;
+
+async function jugadoresDe(db, idRoster) {
+  const sql = `${SELECT_JUGADORES} WHERE rj.id_roster = ? ORDER BY rj.id`;
+  const [jugadores] = await db.query(sql, [idRoster]);
+  return jugadores;
+}
+
+async function jugadorEnRoster(db, idRoster, idJugador) {
+  const sql = `${SELECT_JUGADORES} WHERE rj.id_roster = ? AND rj.id_jugador = ?`;
+  const [[jugador]] = await db.query(sql, [idRoster, idJugador]);
+  return jugador;
+}
+
+// RN-02: máximo 5 titulares. RN-03: dos titulares no pueden tener el mismo rol.
+// El jugador que se valida no cuenta contra sí mismo (al cambiar su rol).
+async function validarTitular(db, idRoster, jugador) {
+  const titulares = (await jugadoresDe(db, idRoster)).filter(
+    (j) => j.rol_en_roster === "Titular" && j.id !== jugador.id,
+  );
+  if (titulares.length >= MAX_TITULARES) {
     throw new HttpError(409, "El roster ya tiene 5 titulares");
-  if (titulares.some((t) => t.jugador.rol === jugador.rol))
+  }
+  if (titulares.some((t) => t.rol === jugador.rol)) {
     throw new HttpError(409, `Ya hay un titular con el rol ${jugador.rol}`);
-};
+  }
+}
 
 // ---- Rosters ----
 
-exports.listar = async ({ tipo, temporada }) => {
-  const where = {};
-  if (tipo) where.tipo = tipo;
-  if (temporada) where.temporada = temporada;
+export async function listar({ tipo, temporada }) {
+  const filtros = [];
+  if (tipo) filtros.push(["r.tipo = ?", tipo]);
+  if (temporada) filtros.push(["r.temporada = ?", temporada]);
 
-  const rosters = await Roster.findAll({ where, order: [["id", "ASC"]] });
-  const conteos = await RosterJugador.findAll({
-    attributes: ["id_roster", [fn("COUNT", col("id")), "total"]],
-    group: ["id_roster"],
-    raw: true,
-  });
-  const porRoster = Object.fromEntries(
-    conteos.map((c) => [c.id_roster, Number(c.total)]),
-  );
+  const { where, valores } = armarWhere(filtros);
+  const sql = `
+    SELECT r.*, COUNT(rj.id) AS cantidad_jugadores
+    FROM rosters r
+    LEFT JOIN roster_jugador rj ON rj.id_roster = r.id
+    ${where}
+    GROUP BY r.id
+    ORDER BY r.id`;
+  const [rosters] = await pool.query(sql, valores);
+  return rosters;
+}
 
-  return rosters.map((r) => ({
-    ...r.get({ plain: true }),
-    cantidad_jugadores: porRoster[r.id] || 0,
-  }));
-};
+export async function obtener(id) {
+  const roster = await buscarRoster(pool, id);
+  return { ...roster, jugadores: await jugadoresDe(pool, id) };
+}
 
-exports.obtener = async (id) => {
-  const roster = await buscar(id);
-  return { ...roster.get({ plain: true }), jugadores: await jugadoresDe(id) };
-};
+export async function crear({ nombre, juego, tipo, temporada }) {
+  const sql = "INSERT INTO rosters (nombre, juego, tipo, temporada) VALUES (?, ?, ?, ?)";
+  const [resultado] = await pool.query(sql, [nombre, juego, tipo, temporada]);
+  return buscarRoster(pool, resultado.insertId);
+}
 
-exports.crear = (data) => Roster.create(data);
+export async function actualizar(id, { nombre, juego, tipo, temporada }) {
+  await buscarRoster(pool, id);
+  const sql = "UPDATE rosters SET nombre = ?, juego = ?, tipo = ?, temporada = ? WHERE id = ?";
+  await pool.query(sql, [nombre, juego, tipo, temporada, id]);
+  return buscarRoster(pool, id);
+}
 
-exports.actualizar = async (id, data) => {
-  const roster = await buscar(id);
-  await roster.update(data);
-  return roster;
-};
-
-exports.eliminar = async (id) => {
-  const roster = await buscar(id);
-  await roster.destroy(); // el FK con CASCADE borra solo las asignaciones, no los jugadores
-};
-
-// ---- Asignación ----
-
-exports.listarJugadores = async (idRoster) => {
-  await buscar(idRoster);
-  return jugadoresDe(idRoster);
-};
-
-exports.asignar = async (idRoster, { id_jugador, rol_en_roster }) => {
-  await buscar(idRoster);
-  const jugador = await Jugador.findByPk(id_jugador);
-  if (!jugador) throw new HttpError(404, "Jugador no encontrado");
-  if (
-    await RosterJugador.findOne({ where: { id_roster: idRoster, id_jugador } })
-  )
-    throw new HttpError(409, "El jugador ya está en este roster");
-  if (rol_en_roster === "Titular") await validarTitular(idRoster, jugador);
-  await RosterJugador.create({
-    id_roster: idRoster,
-    id_jugador,
-    rol_en_roster,
-  });
-  return entradaDe(idRoster, id_jugador);
-};
-
-exports.cambiarRol = async (idRoster, idJugador, rolEnRoster) => {
-  await buscar(idRoster);
-  const fila = await buscarAsignacion(idRoster, idJugador);
-  if (rolEnRoster === "Titular") {
-    const jugador = await Jugador.findByPk(idJugador);
-    await validarTitular(idRoster, jugador, idJugador);
+// El FK con ON DELETE CASCADE borra las asignaciones; los jugadores permanecen.
+export async function eliminar(id) {
+  const sql = "DELETE FROM rosters WHERE id = ?";
+  const [resultado] = await pool.query(sql, [id]);
+  if (resultado.affectedRows === 0) {
+    throw new HttpError(404, "Roster no encontrado");
   }
-  await fila.update({ rol_en_roster: rolEnRoster });
-  return entradaDe(idRoster, idJugador);
-};
+}
 
-exports.quitar = async (idRoster, idJugador) => {
-  await buscar(idRoster);
-  const fila = await buscarAsignacion(idRoster, idJugador);
-  await fila.destroy();
-};
+// ---- Asignación de jugadores ----
+
+export async function listarJugadores(idRoster) {
+  await buscarRoster(pool, idRoster);
+  return jugadoresDe(pool, idRoster);
+}
+
+// asignar y cambiarRol corren en una transacción que bloquea el roster:
+// dos peticiones simultáneas no pueden saltarse RN-02 ni RN-03.
+
+export function asignar(idRoster, { id_jugador, rol_en_roster }) {
+  return enTransaccion(async (db) => {
+    await bloquearRoster(db, idRoster);
+    const jugador = await buscarJugador(db, id_jugador);
+    if (await estaAsignado(db, idRoster, id_jugador)) {
+      throw new HttpError(409, "El jugador ya está en este roster");
+    }
+    if (rol_en_roster === "Titular") {
+      await validarTitular(db, idRoster, jugador);
+    }
+
+    const sql = "INSERT INTO roster_jugador (id_roster, id_jugador, rol_en_roster) VALUES (?, ?, ?)";
+    await db.query(sql, [idRoster, id_jugador, rol_en_roster]);
+    return jugadorEnRoster(db, idRoster, id_jugador);
+  });
+}
+
+export function cambiarRol(idRoster, idJugador, rolEnRoster) {
+  return enTransaccion(async (db) => {
+    await bloquearRoster(db, idRoster);
+    if (!(await estaAsignado(db, idRoster, idJugador))) {
+      throw new HttpError(404, "El jugador no está en este roster");
+    }
+    if (rolEnRoster === "Titular") {
+      await validarTitular(db, idRoster, await buscarJugador(db, idJugador));
+    }
+
+    const sql = "UPDATE roster_jugador SET rol_en_roster = ? WHERE id_roster = ? AND id_jugador = ?";
+    await db.query(sql, [rolEnRoster, idRoster, idJugador]);
+    return jugadorEnRoster(db, idRoster, idJugador);
+  });
+}
+
+export async function quitar(idRoster, idJugador) {
+  await buscarRoster(pool, idRoster);
+  const sql = "DELETE FROM roster_jugador WHERE id_roster = ? AND id_jugador = ?";
+  const [resultado] = await pool.query(sql, [idRoster, idJugador]);
+  if (resultado.affectedRows === 0) {
+    throw new HttpError(404, "El jugador no está en este roster");
+  }
+}

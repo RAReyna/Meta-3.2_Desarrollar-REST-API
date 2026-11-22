@@ -1,21 +1,40 @@
-# Rosters eSports: API REST + Frontend Admin y Public
+# Rosters eSports: API REST
 
-Aplicación web para gestionar jugadores y rosters de eSports (League of Legends). Proyecto de Desarrollo Web, UABC.
+API REST para gestionar jugadores de eSports y armar rosters de equipos (League of Legends).
+Proyecto de Desarrollo Web, UABC.
 
-- **Backend:** API REST con Express, Sequelize y MySQL. Autenticación con JWT en cookie HttpOnly y protección CSRF (double submit cookie).
-- **Frontend:** panel de administración y vista Public de solo lectura con registro abierto, en React + TypeScript + Vite.
-- **Pruebas:** suite del API (`npm test`) y pruebas end-to-end con Playwright.
+- Node.js con **ES modules** (`import` / `export`), Express 5 y **MySQL** con consultas SQL directas (`mysql2`).
+- Autenticación con JWT en cookie HttpOnly y protección CSRF (double submit cookie).
+- Validación con Zod y documentación OpenAPI con Swagger UI.
 
 ## Estructura
 
 ```
 .
-├── backend/    # API REST (Node.js, Express, Sequelize, MySQL)
-├── frontend/   # Panel Admin (React, TypeScript, Vite)
-└── README.md
+├── README.md
+└── backend/
+    ├── server.js            # arranque: verifica MySQL e inicia el servidor
+    ├── openapi.yaml         # especificación OpenAPI (visible en /docs)
+    ├── .env.example         # plantilla de variables de entorno
+    ├── db/
+    │   └── schema.sql       # tablas de la base de datos
+    ├── scripts/
+    │   ├── crear-tablas.js  # npm run db:init
+    │   └── crear-admin.js   # npm run seed:admin
+    ├── test/
+    │   └── endpoints.js     # npm test
+    └── src/
+        ├── app.js           # Express: middlewares, rutas y /docs
+        ├── db.js            # pool de MySQL y helper de transacciones
+        ├── errors.js        # HttpError y manejo de errores
+        ├── constantes.js    # roles, estados y tipos válidos
+        ├── middleware/      # autenticación, CSRF y rol admin
+        ├── routes/          # URLs → controllers
+        ├── controllers/     # entrada/salida HTTP y validación (Zod)
+        └── services/        # reglas de negocio y consultas SQL
 ```
 
-La documentación detallada de la API (endpoints, reglas de negocio, modelo de datos) está en [`backend/README.md`](backend/README.md).
+Cada petición sigue el mismo camino: `routes` → `controllers` (valida) → `services` (reglas y SQL) → MySQL.
 
 ## Requisitos
 
@@ -24,183 +43,258 @@ La documentación detallada de la API (endpoints, reglas de negocio, modelo de d
 
 ## Instalación
 
-**1. Clonar el repositorio**
+**1. Clonar e instalar dependencias**
 
-```
+```bash
 git clone https://github.com/RAReyna/Meta-3.2_Desarrollar-REST-API.git
-cd Meta-3.2_Desarrollar-REST-API
+cd Meta-3.2_Desarrollar-REST-API/backend
+npm install
 ```
 
 **2. Crear la base de datos y un usuario de MySQL**
 
 Con el servicio activo (en Linux/WSL: `sudo service mysql start`), abre `sudo mysql` y ejecuta:
 
-```
+```sql
 CREATE DATABASE roster_api CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER 'roster'@'localhost' IDENTIFIED BY 'tu_contrasena';
 GRANT ALL PRIVILEGES ON roster_api.* TO 'roster'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-**3. Configurar y preparar el backend**
+**3. Configurar las variables de entorno**
 
-```
-cd backend
-npm install
+```bash
 cp .env.example .env
 ```
 
-Edita `backend/.env` con tus valores:
-
-| Variable         | Descripción                                          | Ejemplo               |
-| ---------------- | ---------------------------------------------------- | --------------------- |
-| `PORT`           | Puerto del servidor                                  | `3000`                |
-| `DB_HOST`        | Servidor MySQL                                       | `127.0.0.1`           |
-| `DB_PORT`        | Puerto de MySQL                                      | `3306`                |
-| `DB_NAME`        | Nombre de la base de datos                           | `roster_api`          |
-| `DB_USER`        | Usuario de MySQL                                     | `roster`              |
-| `DB_PASSWORD`    | Contraseña del usuario de MySQL                      |                       |
-| `JWT_SECRET`     | Secreto para firmar los JWT (cadena larga aleatoria) |                       |
-| `COOKIE_MAX_AGE` | Duración de la sesión en milisegundos                | `3600000` (1 hora)    |
-| `ADMIN_EMAIL`    | Email del usuario administrador inicial              | `admin@example.com`   |
-| `ADMIN_PASSWORD` | Contraseña del administrador inicial                 |                       |
+| Variable         | Descripción                                          | Ejemplo             |
+| ---------------- | ---------------------------------------------------- | ------------------- |
+| `PORT`           | Puerto del servidor                                  | `3000`              |
+| `DB_HOST`        | Servidor MySQL                                       | `127.0.0.1`         |
+| `DB_PORT`        | Puerto de MySQL                                      | `3306`              |
+| `DB_NAME`        | Nombre de la base de datos                           | `roster_api`        |
+| `DB_USER`        | Usuario de MySQL                                     | `roster`            |
+| `DB_PASSWORD`    | Contraseña del usuario de MySQL                      |                     |
+| `JWT_SECRET`     | Secreto para firmar los JWT (cadena larga aleatoria) |                     |
+| `COOKIE_MAX_AGE` | Duración de la sesión en milisegundos                | `3600000` (1 hora)  |
+| `ADMIN_EMAIL`    | Email del usuario administrador                      | `admin@example.com` |
+| `ADMIN_PASSWORD` | Contraseña del administrador                         |                     |
 
 Para generar un `JWT_SECRET`:
 
-```
+```bash
 node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 ```
 
-Crea las tablas y el usuario administrador:
+**4. Crear las tablas y el administrador**
 
-```
-npm run db:migrate
-npm run seed:admin
-```
-
-**4. Instalar el frontend**
-
-```
-cd ../frontend
-npm install
-npx playwright install chromium   # navegador para las pruebas e2e
+```bash
+npm run db:init      # ejecuta db/schema.sql (no toca las tablas que ya existen)
+npm run seed:admin   # crea el admin, o actualiza su contraseña si ya existe
 ```
 
-## Ejecución
+**5. Iniciar el servidor**
 
-Se usan dos terminales.
-
-```
-# Terminal 1: backend en http://localhost:3000
-cd backend
-npm run dev
-
-# Terminal 2: frontend en http://localhost:5173
-cd frontend
-npm run dev
+```bash
+npm run dev    # desarrollo: se reinicia al guardar cambios
+npm start      # sin recarga automática
 ```
 
-Abre <http://localhost:5173> e inicia sesión con `ADMIN_EMAIL` y `ADMIN_PASSWORD`, o crea una cuenta public desde **Regístrate**.
+| Recurso                                | URL                                |
+| -------------------------------------- | ---------------------------------- |
+| API                                    | http://localhost:3000/api/v1       |
+| Documentación interactiva (Swagger UI) | http://localhost:3000/docs         |
+| Especificación OpenAPI en JSON         | http://localhost:3000/openapi.json |
 
-El servidor de desarrollo de Vite redirige las peticiones de `/api` al backend (proxy). Así el navegador trabaja con un solo origen y las cookies con `SameSite=Strict` funcionan sin configurar CORS.
+### Solución de problemas
 
-## Funcionalidades del frontend
+- **`ECONNREFUSED` o "No se pudo conectar a MySQL":** el servicio no está activo (`sudo service mysql start`).
+- **`Access denied`:** el usuario o la contraseña del `.env` no coinciden con los del `CREATE USER`.
+- **`Table ... doesn't exist`:** falta `npm run db:init`.
+- **"Falta JWT_SECRET en el .env":** define `JWT_SECRET` en `backend/.env`.
 
-Todas las páginas requieren iniciar sesión. Después del login, cada rol llega a su vista: el admin a `/admin/jugadores` y el public a `/jugadores`.
+## Scripts
 
-### Rol Admin
+| Comando              | Descripción                                    |
+| -------------------- | ---------------------------------------------- |
+| `npm run dev`        | Inicia el servidor y lo reinicia al guardar    |
+| `npm start`          | Inicia el servidor                             |
+| `npm test`           | Ejecuta las pruebas (con el servidor corriendo) |
+| `npm run db:init`    | Crea las tablas de `db/schema.sql`             |
+| `npm run seed:admin` | Crea o actualiza el usuario administrador      |
 
-- Inicio y cierre de sesión; la sesión se restaura al recargar la página.
-- **Jugadores:** listar, buscar por nickname, filtrar por rol y estado, crear, editar y eliminar.
-- **Rosters:** listar, filtrar por tipo y temporada, crear, editar y eliminar.
-- **Asignación:** asignar jugadores a un roster como titular o suplente, cambiar su rol y quitarlos.
-- Los errores del API (nickname duplicado, sexto titular, rol repetido, etc.) se muestran en pantalla.
-- Las rutas `/admin/*` solo son accesibles con una sesión de administrador.
+## Endpoints
 
-### Rol Public (solo lectura)
+Todos cuelgan de `/api/v1` y trabajan con JSON.
 
-- **Registro abierto** en `/registro`: cualquiera crea su cuenta con email y contraseña (8 a 72 caracteres). Toda cuenta nueva tiene rol `public`.
-- **Jugadores** (`/jugadores`): listar, buscar por nickname y filtrar por rol y estado.
-- **Rosters** (`/rosters`): listar y filtrar por tipo y temporada.
-- **Detalle de roster** (`/rosters/:id`): jugadores del roster con su rol de titular o suplente.
-- Sin formularios ni botones de edición. Si un usuario public abre una ruta `/admin/*`, se le redirige a `/jugadores`.
+### Autenticación
+
+| Método | Endpoint         | Descripción                                                         |
+| ------ | ---------------- | ------------------------------------------------------------------- |
+| POST   | `/auth/login`    | Inicia sesión (`{ "email", "password" }`)                           |
+| POST   | `/auth/registro` | Crea una cuenta public y abre la sesión (409 si el email ya existe) |
+| POST   | `/auth/logout`   | Cierra la sesión (requiere token CSRF)                              |
+| GET    | `/auth/me`       | Usuario de la sesión actual y su token CSRF                         |
+
+### Jugadores
+
+| Método | Endpoint                          | Descripción                                             |
+| ------ | --------------------------------- | ------------------------------------------------------- |
+| GET    | `/jugadores?rol=&estado=&search=` | Listar, filtrar por rol o estado, y buscar por nickname |
+| GET    | `/jugadores/{id}`                 | Detalle de un jugador                                   |
+| POST   | `/jugadores`                      | Crear jugador                                           |
+| PUT    | `/jugadores/{id}`                 | Actualizar jugador (reemplaza todos los campos)         |
+| DELETE | `/jugadores/{id}`                 | Eliminar jugador                                        |
+
+### Rosters
+
+| Método | Endpoint                    | Descripción                                   |
+| ------ | --------------------------- | --------------------------------------------- |
+| GET    | `/rosters?tipo=&temporada=` | Listar rosters (incluye `cantidad_jugadores`) |
+| GET    | `/rosters/{id}`             | Detalle del roster con sus jugadores          |
+| POST   | `/rosters`                  | Crear roster                                  |
+| PUT    | `/rosters/{id}`             | Actualizar roster                             |
+| DELETE | `/rosters/{id}`             | Eliminar roster (los jugadores permanecen)    |
+
+### Asignación de jugadores a rosters
+
+| Método | Endpoint                               | Descripción                              |
+| ------ | -------------------------------------- | ---------------------------------------- |
+| GET    | `/rosters/{id}/jugadores`              | Listar jugadores del roster              |
+| POST   | `/rosters/{id}/jugadores`              | Asignar jugador (`Titular` o `Suplente`) |
+| PUT    | `/rosters/{id}/jugadores/{id_jugador}` | Cambiar su rol en el roster              |
+| DELETE | `/rosters/{id}/jugadores/{id_jugador}` | Quitar jugador del roster                |
+
+### Auxiliares (sin sesión)
+
+| Método | Endpoint        | Descripción                      |
+| ------ | --------------- | -------------------------------- |
+| GET    | `/health`       | Verificar que el API está activa |
+| GET    | `/roles`        | Top, Jungle, Mid, ADC, Support   |
+| GET    | `/estados`      | activo, inactivo                 |
+| GET    | `/tipos-roster` | Principal, Academy               |
+
+### Valores válidos
+
+- **rol**: `Top`, `Jungle`, `Mid`, `ADC`, `Support`
+- **estado**: `activo` (por defecto), `inactivo`
+- **tipo** de roster: `Principal`, `Academy`
+- **rol_en_roster**: `Titular`, `Suplente`
+- **juego**: `League of Legends` por defecto
+
+También se pueden probar todos los endpoints desde http://localhost:3000/docs con el botón _Try it out_.
+
+## Reglas de negocio
+
+- El nickname de un jugador es único (sin distinguir mayúsculas de minúsculas).
+- Un roster puede tener como máximo 5 titulares.
+- No puede haber dos titulares con el mismo rol de jugador en un roster.
+- Un jugador puede estar en varios rosters, pero no repetido dentro del mismo.
+- Al eliminar un roster, los jugadores permanecen en el sistema.
+
+Asignar un jugador y cambiar su rol se hacen en una transacción que bloquea el roster
+(`SELECT ... FOR UPDATE`): dos peticiones simultáneas no pueden dejar un roster con 6 titulares.
 
 ## Seguridad: JWT en cookie y protección CSRF
 
 El esquema usa **double submit cookie**.
 
-1. `POST /api/v1/auth/login` valida email y contraseña (hash con bcrypt) contra la tabla `usuarios`. `POST /api/v1/auth/registro` crea la cuenta y abre la sesión de la misma forma; el rol siempre es `public` (un `rol` enviado en el body se ignora).
+1. `POST /auth/login` valida email y contraseña (hash con bcrypt) contra la tabla `usuarios`. `POST /auth/registro` crea la cuenta y abre la sesión de la misma forma; el rol siempre es `public` (un `rol` enviado en el body se ignora).
 2. Si son correctos, el servidor genera un token CSRF aleatorio y responde con dos cookies:
    - `jwt_token`: el JWT, con `HttpOnly` (JavaScript no puede leerla). Su payload incluye el id del usuario, su rol y el token CSRF.
    - `csrf_token`: el mismo token CSRF, **legible** por JavaScript.
    Ambas usan `SameSite=Strict`, y `Secure` en producción.
-3. En cada petición que modifica datos (POST, PUT, DELETE), el frontend lee la cookie `csrf_token` y la reenvía en el header `x-csrf-token`.
+3. En cada petición que modifica datos (POST, PUT, DELETE), el cliente reenvía el token CSRF en el header `x-csrf-token`.
 4. El servidor acepta la petición solo si el header, la cookie y el valor dentro del JWT coinciden, y si el rol del usuario es `admin`. Las comparaciones usan `crypto.timingSafeEqual`.
 
 Un sitio externo puede provocar que el navegador envíe las cookies, pero no puede leer `csrf_token` ni agregar el header, así que el ataque CSRF falla.
 
-### Autorización por método
+| Petición                        | Requisito                      | Respuesta si falta |
+| ------------------------------- | ------------------------------ | ------------------ |
+| `/auth/login`, `/auth/registro` | Ninguno                        |                    |
+| `/health` y catálogos           | Ninguno                        |                    |
+| `GET` de jugadores y rosters    | Sesión válida (admin o public) | 401                |
+| `POST` / `PUT` / `DELETE`       | Sesión válida                  | 401                |
+|                                 | Token CSRF válido              | 403                |
+|                                 | Rol `admin`                    | 403                |
 
-| Petición                         | Requisito                    | Respuesta si falta       |
-| -------------------------------- | ---------------------------- | ------------------------ |
-| `/auth/login`, `/auth/registro`  | Ninguno                      |                          |
-| `/health` y catálogos            | Ninguno                      |                          |
-| `GET` de jugadores y rosters     | Sesión válida (admin o public) | 401                    |
-| `POST` / `PUT` / `DELETE`        | Sesión válida                | 401                      |
-|                                  | Token CSRF válido            | 403                      |
-|                                  | Rol `admin`                  | 403                      |
+### Ejemplo con curl
 
-### Endpoints de autenticación
+```bash
+# 1. Iniciar sesión: guarda las cookies en cookies.txt y muestra el csrfToken
+curl -c cookies.txt -X POST localhost:3000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"tu_contrasena"}'
 
-| Método | Endpoint                | Descripción                                          |
-| ------ | ----------------------- | ---------------------------------------------------- |
-| POST   | `/api/v1/auth/login`    | Inicia sesión y establece las cookies                |
-| POST   | `/api/v1/auth/registro` | Crea una cuenta public y abre la sesión (409 si el email ya existe) |
-| POST   | `/api/v1/auth/logout`   | Cierra la sesión (requiere token CSRF)               |
-| GET    | `/api/v1/auth/me`       | Devuelve el usuario de la sesión y su token CSRF     |
+# 2. Crear un jugador con la cookie y el token CSRF
+curl -b cookies.txt -X POST localhost:3000/api/v1/jugadores \
+  -H "Content-Type: application/json" \
+  -H "x-csrf-token: <csrfToken del paso 1>" \
+  -d '{"nickname":"Faker","nombre_real":"Lee Sang-hyeok","pais":"Corea del Sur","rol":"Mid"}'
+
+# 3. Leer no necesita el token CSRF, solo la sesión
+curl -b cookies.txt localhost:3000/api/v1/jugadores
+```
 
 ### Limitaciones conocidas
 
-- El JWT no se puede revocar antes de expirar: el logout borra las cookies del navegador, pero el servidor no invalida el token. Una mejora sería usar JWT de vida corta con refresh tokens guardados en base de datos.
+- El JWT no se puede revocar antes de expirar: el logout borra las cookies del navegador, pero el servidor no invalida el token.
 - No hay límite de intentos de login ni de registro (rate limiting).
-- No hay forma de borrar cuentas. Las pruebas (`npm test` y Playwright) crean cuentas public de prueba con emails `@example.com` que quedan en la base de datos.
+- No hay forma de borrar cuentas. Las pruebas crean cuentas public con emails `@example.com` que quedan en la base de datos.
+
+## Códigos de respuesta
+
+| Código | Uso                                                                                         |
+| ------ | ------------------------------------------------------------------------------------------- |
+| 200    | OK (GET, PUT)                                                                               |
+| 201    | Creado (POST)                                                                               |
+| 204    | Sin contenido (DELETE, logout)                                                              |
+| 400    | Datos inválidos                                                                             |
+| 401    | Sin sesión o credenciales inválidas                                                         |
+| 403    | Token CSRF inválido o rol sin permiso                                                       |
+| 404    | Recurso no encontrado                                                                       |
+| 409    | Conflicto (nickname duplicado, sexto titular, rol de titular repetido, jugador ya asignado) |
+| 500    | Error interno                                                                               |
+
+Los errores responden con `{ "error": "mensaje" }`. En los errores de validación (400) se incluye además `detalles`.
+
+## Modelo de datos
+
+Definido en [`backend/db/schema.sql`](backend/db/schema.sql).
+
+```
+jugadores                         rosters
+├── id (PK)                       ├── id (PK)
+├── nickname (único)              ├── nombre
+├── nombre_real                   ├── juego
+├── pais                          ├── tipo (Principal / Academy)
+├── rol (Top … Support)           └── temporada
+└── estado (activo / inactivo)
+
+roster_jugador                    usuarios
+├── id (PK)                       ├── id (PK)
+├── id_roster  (FK → rosters)     ├── email (único)
+├── id_jugador (FK → jugadores)   ├── password_hash
+├── rol_en_roster                 └── rol (admin / public)
+└── único (id_roster, id_jugador)
+```
+
+Las FK de `roster_jugador` usan `ON DELETE CASCADE`: borrar un roster o un jugador borra sus asignaciones.
 
 ## Pruebas
 
-### API (backend)
+Con el servidor corriendo y el administrador creado, en otra terminal:
 
-Con el backend corriendo y el administrador creado:
-
-```
+```bash
 cd backend
 npm test
 ```
 
-Ejecuta 76 pruebas: inicio de sesión, registro, los endpoints, las reglas de negocio y los casos de seguridad (sin sesión, sin token CSRF, token incorrecto, cuenta public que intenta escribir, logout).
-
-### End-to-end (Playwright)
-
-Prueban la aplicación en un navegador real (Chromium). Requisitos: MySQL activo, el administrador creado y `ADMIN_EMAIL` / `ADMIN_PASSWORD` en `backend/.env` (la configuración de Playwright lee ese archivo). No hace falta levantar los servidores: Playwright inicia el backend y Vite, o reutiliza los que ya estén corriendo.
-
-```
-cd frontend
-npm run test:e2e                          # todas las pruebas
-npx playwright test --ui                  # modo visual, paso a paso
-npx playwright test e2e/public.spec.ts    # un solo archivo
-npx playwright test -g "registro"         # pruebas cuyo nombre contiene "registro"
-npx playwright show-report                # reporte HTML de la última corrida
-```
-
-| Archivo                  | Pruebas | Qué cubre                                                                                     |
-| ------------------------ | ------- | --------------------------------------------------------------------------------------------- |
-| `e2e/admin.spec.ts`      | 7       | Login y logout, CRUD de jugadores, filtros, CRUD de rosters, asignación, reglas de negocio, guarda de `/admin` |
-| `e2e/public.spec.ts`     | 6       | Registro, login obligatorio, jugadores y filtros, rosters y detalle, sin controles de edición, sin acceso a `/admin` |
-| `e2e/seguridad.spec.ts`  | 8       | Cookie HttpOnly y SameSite, CSRF ausente, incorrecto o de otra sesión, rol public, sin sesión, JWT alterado, logout |
-
-- Las pruebas corren una por una porque comparten la base de datos.
-- Los jugadores y rosters de prueba llevan un sufijo único por corrida y se borran al terminar, aunque una prueba falle.
-- Si una prueba falla, Playwright guarda una traza (capturas, red y DOM de cada paso) que se abre desde el reporte HTML.
+Ejecuta 85 pruebas: inicio de sesión, registro, todos los endpoints, las reglas de negocio, dos asignaciones
+simultáneas al mismo roster, y los casos de seguridad (sin sesión, sin token CSRF, token incorrecto, cuenta
+public que intenta escribir, logout). Borra los jugadores y rosters que crea.
 
 ## Tecnologías
 
-Node.js · Express · MySQL · Sequelize · Zod · jsonwebtoken · bcryptjs · cookie-parser · React · TypeScript · Vite · React Router · TanStack Query · Playwright
+Node.js (ES modules) · Express 5 · MySQL 8 · mysql2 · Zod · jsonwebtoken · bcryptjs · cookie-parser · OpenAPI 3 con Swagger UI
