@@ -13,17 +13,11 @@ export class ApiError extends Error {
 
 // La cookie csrf_token NO es HttpOnly: el frontend la lee y la reenvía en un header.
 function leerCookie(nombre: string): string | undefined {
-  const par = document.cookie
-    .split("; ")
-    .find((c) => c.startsWith(nombre + "="));
+  const par = document.cookie.split("; ").find((c) => c.startsWith(nombre + "="));
   return par ? decodeURIComponent(par.slice(nombre.length + 1)) : undefined;
 }
 
-async function pedir<T>(
-  metodo: string,
-  ruta: string,
-  body?: unknown,
-): Promise<T> {
+async function pedir<T>(metodo: string, ruta: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = {};
   if (body !== undefined) headers["Content-Type"] = "application/json";
 
@@ -43,11 +37,7 @@ async function pedir<T>(
 
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    throw new ApiError(
-      res.status,
-      data?.error ?? res.statusText,
-      data?.detalles,
-    );
+    throw new ApiError(res.status, data?.error ?? res.statusText, data?.detalles);
   }
   return data as T;
 }

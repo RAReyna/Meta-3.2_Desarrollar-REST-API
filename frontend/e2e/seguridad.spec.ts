@@ -35,8 +35,7 @@ async function cookiesDe(ses: SesionApi) {
   return { jwt: valor("jwt_token"), csrf: valor("csrf_token") };
 }
 
-const cookie = (jwt: string, csrf: string) =>
-  `jwt_token=${jwt}; csrf_token=${csrf}`;
+const cookie = (jwt: string, csrf: string) => `jwt_token=${jwt}; csrf_token=${csrf}`;
 
 // POST /jugadores con cookies y header CSRF elegidos a mano.
 function crearJugador(
@@ -111,7 +110,9 @@ test("S4 cuenta public con CSRF válido no puede escribir → 403", async () => 
   await noExiste(nick);
 });
 
-test("S5 sin sesión: se puede leer pero no escribir (health sigue abierto)", async ({ request }) => {
+test("S5 sin sesión: se puede leer pero no escribir (health sigue abierto)", async ({
+  request,
+}) => {
   // Consultar jugadores y rosters es público; escribir exige sesión.
   expect((await request.get(`${API}/jugadores`)).status()).toBe(200);
   expect((await request.get(`${API}/rosters`)).status()).toBe(200);

@@ -85,12 +85,7 @@ async function crearCuenta(evento: SubmitEventPromise) {
     </v-card-text>
     <v-card-actions class="justify-center">
       ¿Ya tienes cuenta?
-      <v-btn
-        to="/login"
-        variant="text"
-      >
-        Inicia sesión
-      </v-btn>
+      <v-btn to="/login" variant="text"> Inicia sesión </v-btn>
     </v-card-actions>
   </v-card>
 </template>

@@ -45,10 +45,7 @@ export const filas = (page: Page, tabla: string) =>
 
 // Sesión por API (sin navegador) para preparar datos rápido.
 // El contexto guarda las cookies; el header CSRF se agrega en cada escritura.
-export async function sesionApi(
-  email = ADMIN.email,
-  password = ADMIN.password,
-) {
+export async function sesionApi(email = ADMIN.email, password = ADMIN.password) {
   const ctx = await request.newContext({ baseURL: BASE });
   const r = await ctx.post(`${API}/auth/login`, { data: { email, password } });
   expect(r.status(), "login por API").toBe(200);

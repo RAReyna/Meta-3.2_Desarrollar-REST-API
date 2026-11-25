@@ -121,7 +121,11 @@ test("A4 CRUD de rosters", async ({ page }) => {
 });
 
 test("A5 asignar, cambiar rol y quitar jugador", async ({ page }) => {
-  const roster = await api.post("/rosters", { nombre: `A5 ${S}`, tipo: "Principal", temporada: "2026" });
+  const roster = await api.post("/rosters", {
+    nombre: `A5 ${S}`,
+    tipo: "Principal",
+    temporada: "2026",
+  });
   const jugador = await api.post("/jugadores", { nickname: `A5${S}`, rol: "Jungle" });
   await loginAdmin(page);
   await page.goto(`/rosters/${roster.id}`);
@@ -159,16 +163,23 @@ test("A6 errores de reglas de negocio", async ({ page }) => {
   await page.keyboard.press("Escape");
 
   // Sexto titular (RN-02)
-  const roster = await api.post("/rosters", { nombre: `A6 ${S}`, tipo: "Principal", temporada: "2026" });
+  const roster = await api.post("/rosters", {
+    nombre: `A6 ${S}`,
+    tipo: "Principal",
+    temporada: "2026",
+  });
   for (const rol of ["Top", "Jungle", "Mid", "ADC", "Support"]) {
     const j = await api.post("/jugadores", { nickname: `A6${rol}${S}`, rol });
-    await api.post(`/rosters/${roster.id}/jugadores`, { id_jugador: j.id, rol_en_roster: "Titular" });
+    await api.post(`/rosters/${roster.id}/jugadores`, {
+      id_jugador: j.id,
+      rol_en_roster: "Titular",
+    });
   }
   const sexto = await api.post("/jugadores", { nickname: `A6sexto${S}`, rol: "Mid" });
   await page.goto(`/rosters/${roster.id}`);
   await elegir(page, "Jugador", `${sexto.nickname} (Mid)`);
   await page.getByRole("button", { name: "Titular", exact: true }).click();
   await page.getByTestId("asignar-submit").click();
-  await expect(page.getByTestId("error-accion")).toContainText("El roster ya tiene 5 titulares");
+  await expect(page.getByTestId("asignar-error")).toContainText("El roster ya tiene 5 titulares");
   await expect(page.getByTestId("titulares")).toContainText("Titulares (5/5)");
 });

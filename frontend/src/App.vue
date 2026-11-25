@@ -35,16 +35,10 @@ async function cerrarSesion() {
   <v-app>
     <v-app-bar color="secondary">
       <!-- En celular, los enlaces van en un menú -->
-      <template
-        v-if="esCelular"
-        #prepend
-      >
+      <template v-if="esCelular" #prepend>
         <v-menu>
           <template #activator="{ props }">
-            <v-app-bar-nav-icon
-              v-bind="props"
-              aria-label="Menú"
-            />
+            <v-app-bar-nav-icon v-bind="props" aria-label="Menú" />
           </template>
           <v-list>
             <v-list-item
@@ -60,12 +54,7 @@ async function cerrarSesion() {
       </template>
 
       <v-app-bar-title class="titulo-barra">
-        <router-link
-          to="/"
-          class="titulo"
-        >
-          Roster Manager
-        </router-link>
+        <router-link to="/" class="titulo"> Roster Manager </router-link>
       </v-app-bar-title>
 
       <template v-if="!esCelular">

@@ -30,26 +30,14 @@ async function confirmar() {
 </script>
 
 <template>
-  <v-dialog
-    v-model="abierto"
-    max-width="440"
-  >
-    <v-card
-      :title="titulo"
-      :text="texto"
-    >
+  <v-dialog v-model="abierto" max-width="440">
+    <v-card :title="titulo" :text="texto">
       <v-card-text v-if="error">
-        <v-alert
-          type="error"
-          :text="error"
-        />
+        <v-alert type="error" :text="error" />
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn
-          text="Cancelar"
-          @click="abierto = false"
-        />
+        <v-btn text="Cancelar" @click="abierto = false" />
         <v-btn
           color="error"
           text="Eliminar"

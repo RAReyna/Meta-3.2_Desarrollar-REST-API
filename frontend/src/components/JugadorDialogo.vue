@@ -29,7 +29,13 @@ watch(abierto, (estaAbierto) => {
   error.value = "";
   const j = props.jugador;
   form.value = j
-    ? { nickname: j.nickname, nombre_real: j.nombre_real ?? "", pais: j.pais ?? "", rol: j.rol, estado: j.estado }
+    ? {
+        nickname: j.nickname,
+        nombre_real: j.nombre_real ?? "",
+        pais: j.pais ?? "",
+        rol: j.rol,
+        estado: j.estado,
+      }
     : vacio();
 });
 
@@ -59,10 +65,7 @@ async function guardar(evento: SubmitEventPromise) {
 </script>
 
 <template>
-  <v-dialog
-    v-model="abierto"
-    max-width="480"
-  >
+  <v-dialog v-model="abierto" max-width="480">
     <v-card :title="jugador ? 'Editar jugador' : 'Nuevo jugador'">
       <v-form @submit.prevent="guardar">
         <v-card-text>
@@ -72,38 +75,15 @@ async function guardar(evento: SubmitEventPromise) {
             :rules="[requerido]"
             data-testid="jugador-nickname"
           />
-          <v-text-field
-            v-model="form.nombre_real"
-            label="Nombre real (opcional)"
-          />
-          <v-text-field
-            v-model="form.pais"
-            label="País (opcional)"
-          />
-          <v-select
-            v-model="form.rol"
-            label="Rol"
-            :items="ROLES"
-            data-testid="jugador-rol"
-          />
-          <v-select
-            v-model="form.estado"
-            label="Estado"
-            :items="ESTADOS"
-          />
-          <v-alert
-            v-if="error"
-            type="error"
-            :text="error"
-            data-testid="jugador-error"
-          />
+          <v-text-field v-model="form.nombre_real" label="Nombre real (opcional)" />
+          <v-text-field v-model="form.pais" label="País (opcional)" />
+          <v-select v-model="form.rol" label="Rol" :items="ROLES" data-testid="jugador-rol" />
+          <v-select v-model="form.estado" label="Estado" :items="ESTADOS" />
+          <v-alert v-if="error" type="error" :text="error" data-testid="jugador-error" />
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn
-            text="Cancelar"
-            @click="abierto = false"
-          />
+          <v-btn text="Cancelar" @click="abierto = false" />
           <v-btn
             type="submit"
             color="primary"

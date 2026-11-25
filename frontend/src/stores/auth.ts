@@ -8,7 +8,7 @@ interface RespuestaSesion {
 }
 
 // Sesión del usuario. La cookie la maneja el navegador; aquí solo
-// guardamos quién es el usuario para mostrarlo y decidir a dónde puede ir.
+// guardamos quién es el usuario para mostrarlo y saber si es admin.
 export const useAuthStore = defineStore("auth", () => {
   const usuario = ref<Usuario | null>(null);
   const esAdmin = computed(() => usuario.value?.rol === "admin");
@@ -30,13 +30,11 @@ export const useAuthStore = defineStore("auth", () => {
   async function login(email: string, password: string) {
     const r = await api.post<RespuestaSesion>("/auth/login", { email, password });
     usuario.value = r.usuario;
-    return r.usuario;
   }
 
   async function registro(email: string, password: string) {
     const r = await api.post<RespuestaSesion>("/auth/registro", { email, password });
     usuario.value = r.usuario;
-    return r.usuario;
   }
 
   async function logout() {
@@ -50,4 +48,3 @@ export const useAuthStore = defineStore("auth", () => {
 
   return { usuario, esAdmin, revisarSesion, login, registro, logout };
 });
-

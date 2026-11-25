@@ -9,9 +9,7 @@ interface Issue {
 export function textoError(err: unknown): string {
   if (err instanceof ApiError) {
     if (err.status === 401) return "Tu sesión expiró. Vuelve a iniciar sesión.";
-    if (err.status === 403) {
-      return "Acción no permitida (sesión o token CSRF inválido).";
-    }
+    if (err.status === 403) return "No tienes permiso para hacer esto.";
     if (Array.isArray(err.detalles) && err.detalles.length > 0) {
       const partes = (err.detalles as Issue[]).map(
         (d) => `${(d.path ?? []).join(".")}: ${d.message ?? ""}`,

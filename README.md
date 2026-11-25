@@ -192,6 +192,7 @@ inicia sesión con `ADMIN_EMAIL` y `ADMIN_PASSWORD`.
 | `npm run build`    | Revisa los tipos (`vue-tsc`) y genera `dist/`        |
 | `npm run preview`  | Sirve el `dist/` generado                            |
 | `npm run lint`     | ESLint (reglas de Vue y TypeScript)                  |
+| `npm run format`   | Da formato al código con Prettier                    |
 | `npm run test:e2e` | Pruebas end-to-end con Playwright                    |
 
 ## Endpoints
@@ -405,4 +406,4 @@ npx playwright show-report                # reporte HTML de la última corrida
 
 **Backend:** Node.js (ES modules) · Express 5 · MySQL 8 · mysql2 · Zod · jsonwebtoken · bcryptjs · cookie-parser · OpenAPI 3 con Swagger UI
 
-**Frontend:** Vue 3 · Vuetify · TypeScript · Vite · Vue Router · Pinia · ESLint · Playwright
+**Frontend:** Vue 3 · Vuetify · TypeScript · Vite · Vue Router · Pinia · ESLint · Prettier · Playwright

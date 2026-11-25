@@ -17,10 +17,12 @@ const auth = useAuthStore();
 const router = useRouter();
 const { smAndDown: esCelular } = useDisplay();
 
-const { datos: rosters, cargando, error, recargar } = useRecurso(
-  () => api.get<Roster[]>("/rosters"),
-  [],
-);
+const {
+  datos: rosters,
+  cargando,
+  error,
+  recargar,
+} = useRecurso(() => api.get<Roster[]>("/rosters"), []);
 
 // Los filtros se aplican aquí mismo, sin volver a pedir los datos.
 const filtros = reactive({
@@ -84,9 +86,7 @@ async function eliminar() {
 
 <template>
   <div class="d-flex align-center mb-4">
-    <h1 class="text-headline-medium">
-      Rosters
-    </h1>
+    <h1 class="text-headline-medium">Rosters</h1>
     <v-spacer />
     <v-btn
       v-if="auth.esAdmin"
@@ -99,36 +99,15 @@ async function eliminar() {
   </div>
 
   <v-row density="compact">
-    <v-col
-      cols="6"
-      md="3"
-    >
-      <v-select
-        v-model="filtros.tipo"
-        label="Tipo"
-        :items="TIPOS_ROSTER"
-        clearable
-      />
+    <v-col cols="6" md="3">
+      <v-select v-model="filtros.tipo" label="Tipo" :items="TIPOS_ROSTER" clearable />
     </v-col>
-    <v-col
-      cols="6"
-      md="3"
-    >
-      <v-select
-        v-model="filtros.temporada"
-        label="Temporada"
-        :items="temporadas"
-        clearable
-      />
+    <v-col cols="6" md="3">
+      <v-select v-model="filtros.temporada" label="Temporada" :items="temporadas" clearable />
     </v-col>
   </v-row>
 
-  <v-alert
-    v-if="error"
-    type="error"
-    :text="error"
-    class="mb-4"
-  />
+  <v-alert v-if="error" type="error" :text="error" class="mb-4" />
 
   <v-data-table
     :headers="columnas"
@@ -141,11 +120,7 @@ async function eliminar() {
     @click:row="verDetalle"
   >
     <template #item.tipo="{ value }">
-      <v-chip
-        :text="value"
-        :color="COLOR_TIPO[value as TipoRoster]"
-        size="small"
-      />
+      <v-chip :text="value" :color="COLOR_TIPO[value as TipoRoster]" size="small" />
     </template>
     <template #item.acciones="{ item }">
       <!-- .stop: el clic en el botón no abre el detalle -->
@@ -167,11 +142,7 @@ async function eliminar() {
     </template>
   </v-data-table>
 
-  <RosterDialogo
-    v-model="dialogo"
-    :roster="editando"
-    @guardado="alGuardar"
-  />
+  <RosterDialogo v-model="dialogo" :roster="editando" @guardado="alGuardar" />
   <ConfirmarDialogo
     v-model="confirmacion"
     titulo="Eliminar roster"

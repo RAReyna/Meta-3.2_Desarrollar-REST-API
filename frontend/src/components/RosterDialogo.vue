@@ -47,10 +47,7 @@ async function guardar(evento: SubmitEventPromise) {
 </script>
 
 <template>
-  <v-dialog
-    v-model="abierto"
-    max-width="480"
-  >
+  <v-dialog v-model="abierto" max-width="480">
     <v-card :title="roster ? 'Editar roster' : 'Nuevo roster'">
       <v-form @submit.prevent="guardar">
         <v-card-text>
@@ -60,28 +57,13 @@ async function guardar(evento: SubmitEventPromise) {
             :rules="[requerido]"
             data-testid="roster-nombre"
           />
-          <v-select
-            v-model="form.tipo"
-            label="Tipo"
-            :items="TIPOS_ROSTER"
-          />
-          <v-text-field
-            v-model="form.temporada"
-            label="Temporada"
-            :rules="[requerido]"
-          />
-          <v-alert
-            v-if="error"
-            type="error"
-            :text="error"
-          />
+          <v-select v-model="form.tipo" label="Tipo" :items="TIPOS_ROSTER" />
+          <v-text-field v-model="form.temporada" label="Temporada" :rules="[requerido]" />
+          <v-alert v-if="error" type="error" :text="error" />
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn
-            text="Cancelar"
-            @click="abierto = false"
-          />
+          <v-btn text="Cancelar" @click="abierto = false" />
           <v-btn
             type="submit"
             color="primary"

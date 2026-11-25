@@ -22,10 +22,20 @@ test.beforeAll(async () => {
 
   const top = await api.post("/jugadores", { nickname: `P3top${S}`, rol: "Top" });
   const mid = await api.post("/jugadores", { nickname: `P3mid${S}`, rol: "Mid" });
-  principal = await api.post("/rosters", { nombre: `P Principal ${S}`, tipo: "Principal", temporada: S });
+  principal = await api.post("/rosters", {
+    nombre: `P Principal ${S}`,
+    tipo: "Principal",
+    temporada: S,
+  });
   await api.post("/rosters", { nombre: `P Academy ${S}`, tipo: "Academy", temporada: S });
-  await api.post(`/rosters/${principal.id}/jugadores`, { id_jugador: top.id, rol_en_roster: "Titular" });
-  await api.post(`/rosters/${principal.id}/jugadores`, { id_jugador: mid.id, rol_en_roster: "Suplente" });
+  await api.post(`/rosters/${principal.id}/jugadores`, {
+    id_jugador: top.id,
+    rol_en_roster: "Titular",
+  });
+  await api.post(`/rosters/${principal.id}/jugadores`, {
+    id_jugador: mid.id,
+    rol_en_roster: "Suplente",
+  });
 });
 
 test.afterAll(async () => {
@@ -73,9 +83,7 @@ test("P1 registro de cuenta", async ({ page }) => {
   await page.getByTestId("registro-email").locator("input").fill(email);
   await page.getByTestId("registro-password").locator("input").fill("Public12345");
   await page.getByTestId("registro-submit").click();
-  await expect(page.getByTestId("registro-error")).toContainText(
-    "Ese email ya está registrado",
-  );
+  await expect(page.getByTestId("registro-error")).toContainText("Ese email ya está registrado");
 });
 
 test("P2 sin cuenta: portada y consulta en solo lectura", async ({ page }) => {
@@ -120,8 +128,12 @@ test("P4 rosters: filtros y detalle", async ({ page }) => {
   await lista.filter({ hasText: `P Principal ${S}` }).click();
   await expect(page).toHaveURL(`/rosters/${principal.id}`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(`P Principal ${S}`);
-  await expect(page.getByTestId("titulares").getByTestId("jugador-en-roster")).toHaveText([`TopP3top${S}`]);
-  await expect(page.getByTestId("suplentes").getByTestId("jugador-en-roster")).toHaveText([`MidP3mid${S}`]);
+  await expect(page.getByTestId("titulares").getByTestId("jugador-en-roster")).toHaveText([
+    `TopP3top${S}`,
+  ]);
+  await expect(page.getByTestId("suplentes").getByTestId("jugador-en-roster")).toHaveText([
+    `MidP3mid${S}`,
+  ]);
 
   // Las migas regresan a la lista
   await page.getByRole("link", { name: "Rosters" }).last().click();

@@ -14,10 +14,12 @@ import JugadorDialogo from "@/components/JugadorDialogo.vue";
 const auth = useAuthStore();
 const { smAndDown: esCelular } = useDisplay();
 
-const { datos: jugadores, cargando, error, recargar } = useRecurso(
-  () => api.get<Jugador[]>("/jugadores"),
-  [],
-);
+const {
+  datos: jugadores,
+  cargando,
+  error,
+  recargar,
+} = useRecurso(() => api.get<Jugador[]>("/jugadores"), []);
 
 // Los filtros se aplican aquí mismo, sin volver a pedir los datos.
 const filtros = reactive({
@@ -78,9 +80,7 @@ async function eliminar() {
 
 <template>
   <div class="d-flex align-center mb-4">
-    <h1 class="text-headline-medium">
-      Jugadores
-    </h1>
+    <h1 class="text-headline-medium">Jugadores</h1>
     <v-spacer />
     <v-btn
       v-if="auth.esAdmin"
@@ -93,10 +93,7 @@ async function eliminar() {
   </div>
 
   <v-row density="compact">
-    <v-col
-      cols="12"
-      md="6"
-    >
+    <v-col cols="12" md="6">
       <v-text-field
         v-model="filtros.texto"
         label="Buscar por nickname"
@@ -105,36 +102,15 @@ async function eliminar() {
         data-testid="buscar-jugador"
       />
     </v-col>
-    <v-col
-      cols="6"
-      md="3"
-    >
-      <v-select
-        v-model="filtros.rol"
-        label="Rol"
-        :items="ROLES"
-        clearable
-      />
+    <v-col cols="6" md="3">
+      <v-select v-model="filtros.rol" label="Rol" :items="ROLES" clearable />
     </v-col>
-    <v-col
-      cols="6"
-      md="3"
-    >
-      <v-select
-        v-model="filtros.estado"
-        label="Estado"
-        :items="ESTADOS"
-        clearable
-      />
+    <v-col cols="6" md="3">
+      <v-select v-model="filtros.estado" label="Estado" :items="ESTADOS" clearable />
     </v-col>
   </v-row>
 
-  <v-alert
-    v-if="error"
-    type="error"
-    :text="error"
-    class="mb-4"
-  />
+  <v-alert v-if="error" type="error" :text="error" class="mb-4" />
 
   <v-data-table
     :headers="columnas"
@@ -151,18 +127,10 @@ async function eliminar() {
       {{ value ?? "—" }}
     </template>
     <template #item.rol="{ value }">
-      <v-chip
-        :text="value"
-        size="small"
-        variant="tonal"
-      />
+      <v-chip :text="value" size="small" variant="tonal" />
     </template>
     <template #item.estado="{ value }">
-      <v-chip
-        :text="value"
-        :color="COLOR_ESTADO[value as EstadoJugador]"
-        size="small"
-      />
+      <v-chip :text="value" :color="COLOR_ESTADO[value as EstadoJugador]" size="small" />
     </template>
     <template #item.acciones="{ item }">
       <v-btn
@@ -183,11 +151,7 @@ async function eliminar() {
     </template>
   </v-data-table>
 
-  <JugadorDialogo
-    v-model="dialogo"
-    :jugador="editando"
-    @guardado="alGuardar"
-  />
+  <JugadorDialogo v-model="dialogo" :jugador="editando" @guardado="alGuardar" />
   <ConfirmarDialogo
     v-model="confirmacion"
     titulo="Eliminar jugador"

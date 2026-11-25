@@ -30,11 +30,7 @@ async function entrar() {
 </script>
 
 <template>
-  <v-card
-    class="mx-auto mt-8"
-    max-width="420"
-    title="Iniciar sesión"
-  >
+  <v-card class="mx-auto mt-8" max-width="420" title="Iniciar sesión">
     <v-card-text>
       <v-form @submit.prevent="entrar">
         <v-text-field
@@ -53,33 +49,15 @@ async function entrar() {
           required
           data-testid="login-password"
         />
-        <v-alert
-          v-if="error"
-          type="error"
-          :text="error"
-          class="mb-4"
-          data-testid="login-error"
-        />
-        <v-btn
-          type="submit"
-          color="primary"
-          block
-          :loading="enviando"
-          data-testid="login-submit"
-        >
+        <v-alert v-if="error" type="error" :text="error" class="mb-4" data-testid="login-error" />
+        <v-btn type="submit" color="primary" block :loading="enviando" data-testid="login-submit">
           Entrar
         </v-btn>
       </v-form>
     </v-card-text>
     <v-card-actions class="justify-center">
       ¿No tienes cuenta?
-      <v-btn
-        to="/registro"
-        variant="text"
-        data-testid="link-registro"
-      >
-        Regístrate
-      </v-btn>
+      <v-btn to="/registro" variant="text" data-testid="link-registro"> Regístrate </v-btn>
     </v-card-actions>
   </v-card>
 </template>
