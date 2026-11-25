@@ -43,6 +43,7 @@ function abrirSesion(res, usuario, status) {
     expiresIn: Math.floor(DURACION_MS / 1000),
   });
 
+  // Cookies que el navegador guarda y envía de vuelta en cada petición.
   res.cookie("jwt_token", token, { ...COOKIE, httpOnly: true, maxAge: DURACION_MS });
   res.cookie("csrf_token", csrf, { ...COOKIE, httpOnly: false, maxAge: DURACION_MS });
   res.status(status).json({ usuario: datosPublicos(usuario), csrfToken: csrf });

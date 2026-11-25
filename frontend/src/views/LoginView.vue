@@ -1,11 +1,21 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { ApiError } from "@/api";
 import { useAuthStore } from "@/stores/auth";
 
 const auth = useAuthStore();
+const route = useRoute();
 const router = useRouter();
+
+// A dónde ir después de entrar: la página donde venció la sesión, o la portada.
+// Solo rutas internas ("/rosters/5"), nunca otro sitio ("//otro.com").
+function destino() {
+  const volver = route.query.volver;
+  return typeof volver === "string" && volver.startsWith("/") && !volver.startsWith("//")
+    ? volver
+    : "/";
+}
 
 const email = ref("");
 const password = ref("");
@@ -17,7 +27,7 @@ async function entrar() {
   enviando.value = true;
   try {
     await auth.login(email.value, password.value);
-    router.push("/");
+    router.push(destino());
   } catch (err) {
     error.value =
       err instanceof ApiError && err.status === 401

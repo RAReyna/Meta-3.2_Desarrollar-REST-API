@@ -163,6 +163,7 @@ inicia sesión con `ADMIN_EMAIL` y `ADMIN_PASSWORD`.
 - Los filtros se aplican en el navegador, sin volver a pedir los datos.
 - Tema claro y oscuro (se recuerda al recargar) y diseño adaptado a celular.
 - Los errores de las reglas de negocio (nickname repetido, sexto titular...) se muestran con el mensaje del API.
+- Si la sesión vence con la página abierta, la siguiente acción lleva al login y, al entrar, regresa a la misma página.
 
 ### Solución de problemas
 
@@ -396,7 +397,7 @@ npx playwright show-report                # reporte HTML de la última corrida
 | Archivo                 | Pruebas | Qué cubre                                                                                     |
 | ----------------------- | ------- | --------------------------------------------------------------------------------------------- |
 | `e2e/public.spec.ts`    | 6       | Registro, consulta sin cuenta, filtros, detalle de roster, cuenta public sin controles de edición, rutas |
-| `e2e/admin.spec.ts`     | 6       | Login y logout, CRUD de jugadores y rosters, filtros, asignación y cambio de rol, reglas de negocio |
+| `e2e/admin.spec.ts`     | 7       | Login y logout, CRUD de jugadores y rosters, filtros, asignación y cambio de rol, reglas de negocio, sesión vencida |
 | `e2e/seguridad.spec.ts` | 8       | Cookie HttpOnly y SameSite, CSRF ausente, incorrecto o de otra sesión, rol public, sin sesión, JWT alterado, logout |
 
 - Las pruebas corren una por una (comparten la base de datos) y borran los jugadores y rosters que crean.

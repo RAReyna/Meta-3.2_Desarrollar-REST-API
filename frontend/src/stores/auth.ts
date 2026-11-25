@@ -43,8 +43,13 @@ export const useAuthStore = defineStore("auth", () => {
     } catch {
       // Si la sesión ya había expirado, igual limpiamos el estado local.
     }
+    olvidarSesion();
+  }
+
+  // Borra la sesión solo en el frontend (el backend ya no la acepta).
+  function olvidarSesion() {
     usuario.value = null;
   }
 
-  return { usuario, esAdmin, revisarSesion, login, registro, logout };
+  return { usuario, esAdmin, revisarSesion, login, registro, logout, olvidarSesion };
 });

@@ -183,3 +183,30 @@ test("A6 errores de reglas de negocio", async ({ page }) => {
   await expect(page.getByTestId("asignar-error")).toContainText("El roster ya tiene 5 titulares");
   await expect(page.getByTestId("titulares")).toContainText("Titulares (5/5)");
 });
+
+test("A7 sesión vencida con la página abierta → login y de regreso", async ({ page, context }) => {
+  const nick = `A7${S}`;
+  await loginAdmin(page);
+  await page.goto("/jugadores");
+  await page.getByTestId("nuevo-jugador").click();
+
+  // Al vencer, el navegador borra las cookies (maxAge); la página no se entera.
+  await context.clearCookies();
+
+  const dialogo = page.getByRole("dialog");
+  await dialogo.getByLabel("Nickname").fill(nick);
+  await elegir(dialogo, "Rol", "Mid");
+  await dialogo.getByTestId("jugador-guardar").click();
+
+  await expect(page).toHaveURL("/login?volver=/jugadores");
+  await expect(page.getByTestId("aviso")).toContainText("Tu sesión expiró");
+  await expect(page.getByTestId("btn-cuenta")).toBeVisible();
+  expect(await api.get(`/jugadores?search=${nick}`)).toHaveLength(0);
+
+  // Al volver a entrar regresa a la página donde estaba.
+  await page.getByTestId("login-email").locator("input").fill(ADMIN.email);
+  await page.getByTestId("login-password").locator("input").fill(ADMIN.password);
+  await page.getByTestId("login-submit").click();
+  await expect(page).toHaveURL("/jugadores");
+  await expect(page.getByTestId("nuevo-jugador")).toBeVisible();
+});

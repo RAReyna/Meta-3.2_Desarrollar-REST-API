@@ -11,6 +11,12 @@ export class ApiError extends Error {
   }
 }
 
+// Qué hacer cuando la sesión vence con la página abierta (lo define main.ts).
+let alVencerSesion = () => {};
+export function cuandoVenzaLaSesion(accion: () => void) {
+  alVencerSesion = accion;
+}
+
 // La cookie csrf_token NO es HttpOnly: el frontend la lee y la reenvía en un header.
 function leerCookie(nombre: string): string | undefined {
   const par = document.cookie.split("; ").find((c) => c.startsWith(nombre + "="));
@@ -37,6 +43,9 @@ async function pedir<T>(metodo: string, ruta: string, body?: unknown): Promise<T
 
   const data = await res.json().catch(() => null);
   if (!res.ok) {
+    // Un 401 en /auth es normal (contraseña incorrecta, sin sesión al abrir la app).
+    // En cualquier otra ruta significa que la sesión venció.
+    if (res.status === 401 && !ruta.startsWith("/auth/")) alVencerSesion();
     throw new ApiError(res.status, data?.error ?? res.statusText, data?.detalles);
   }
   return data as T;
