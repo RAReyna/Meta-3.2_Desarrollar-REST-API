@@ -1,6 +1,7 @@
 import "vuetify/styles";
 import "@mdi/font/css/materialdesignicons.css";
 import { createVuetify } from "vuetify";
+import { es } from "vuetify/locale";
 
 const CLAVE_TEMA = "tema";
 
@@ -22,6 +23,8 @@ export function guardarTema(nombre: string) {
 }
 
 export default createVuetify({
+  // Textos de los componentes (tablas, paginación...) en español
+  locale: { locale: "es", messages: { es } },
   theme: {
     defaultTheme: temaGuardado(),
     themes: {

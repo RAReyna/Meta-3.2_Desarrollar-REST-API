@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { api } from "@/api";
 import type { Usuario } from "@/types";
 
@@ -11,6 +11,7 @@ interface RespuestaSesion {
 // guardamos quién es el usuario para mostrarlo y decidir a dónde puede ir.
 export const useAuthStore = defineStore("auth", () => {
   const usuario = ref<Usuario | null>(null);
+  const esAdmin = computed(() => usuario.value?.rol === "admin");
   let sesionRevisada = false;
 
   // Al abrir la app pregunta al backend si la cookie sigue siendo válida.
@@ -47,11 +48,6 @@ export const useAuthStore = defineStore("auth", () => {
     usuario.value = null;
   }
 
-  return { usuario, revisarSesion, login, registro, logout };
+  return { usuario, esAdmin, revisarSesion, login, registro, logout };
 });
 
-// Página de inicio: el admin va a su panel; todos los demás, con o sin
-// cuenta, a la consulta pública.
-export function inicioDe(usuario: Usuario | null): string {
-  return usuario?.rol === "admin" ? "/admin/jugadores" : "/jugadores";
-}

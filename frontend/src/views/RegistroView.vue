@@ -4,7 +4,7 @@ import { useRouter } from "vue-router";
 import type { SubmitEventPromise } from "vuetify";
 import { ApiError } from "@/api";
 import { textoError } from "@/errores";
-import { inicioDe, useAuthStore } from "@/stores/auth";
+import { useAuthStore } from "@/stores/auth";
 
 const auth = useAuthStore();
 const router = useRouter();
@@ -26,8 +26,8 @@ async function crearCuenta(evento: SubmitEventPromise) {
   error.value = "";
   enviando.value = true;
   try {
-    const usuario = await auth.registro(email.value, password.value);
-    router.push(inicioDe(usuario));
+    await auth.registro(email.value, password.value);
+    router.push("/");
   } catch (err) {
     error.value =
       err instanceof ApiError && err.status === 409

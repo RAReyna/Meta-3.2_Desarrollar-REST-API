@@ -2,22 +2,20 @@
 import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { useDisplay, useTheme } from "vuetify";
-import { inicioDe, useAuthStore } from "@/stores/auth";
+import { useAuthStore } from "@/stores/auth";
 import { guardarTema } from "@/plugins/vuetify";
+import { aviso } from "@/composables/aviso";
 
 const auth = useAuthStore();
 const router = useRouter();
 const theme = useTheme();
 const { smAndDown: esCelular } = useDisplay();
 
-// Enlaces de la barra: el admin va a su panel; los demás, a la consulta pública.
-const enlaces = computed(() => {
-  const base = auth.usuario?.rol === "admin" ? "/admin" : "";
-  return [
-    { texto: "Jugadores", ruta: `${base}/jugadores`, icono: "mdi-account", testid: "nav-jugadores" },
-    { texto: "Rosters", ruta: `${base}/rosters`, icono: "mdi-account-group", testid: "nav-rosters" },
-  ];
-});
+// Enlaces de la barra: los mismos para todos, con o sin sesión.
+const enlaces = [
+  { texto: "Jugadores", ruta: "/jugadores", icono: "mdi-account", testid: "nav-jugadores" },
+  { texto: "Rosters", ruta: "/rosters", icono: "mdi-trophy", testid: "nav-rosters" },
+];
 
 const esOscuro = computed(() => theme.current.value.dark);
 
@@ -29,7 +27,7 @@ function cambiarTema() {
 
 async function cerrarSesion() {
   await auth.logout();
-  router.push(inicioDe(null));
+  router.push("/");
 }
 </script>
 
@@ -63,7 +61,7 @@ async function cerrarSesion() {
 
       <v-app-bar-title class="titulo-barra">
         <router-link
-          :to="inicioDe(auth.usuario)"
+          to="/"
           class="titulo"
         >
           Roster Manager
@@ -122,7 +120,7 @@ async function cerrarSesion() {
         <v-list>
           <v-list-item
             :title="auth.usuario.email"
-            :subtitle="auth.usuario.rol === 'admin' ? 'Administrador' : 'Solo lectura'"
+            :subtitle="auth.esAdmin ? 'Administrador' : 'Solo lectura'"
             data-testid="usuario-email"
           />
           <v-divider />
@@ -141,6 +139,14 @@ async function cerrarSesion() {
         <router-view />
       </v-container>
     </v-main>
+
+    <v-snackbar
+      v-model="aviso.visible"
+      :color="aviso.color"
+      :text="aviso.texto"
+      timeout="3000"
+      data-testid="aviso"
+    />
   </v-app>
 </template>
 
