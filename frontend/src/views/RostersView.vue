@@ -98,7 +98,7 @@ async function eliminar() {
     />
   </div>
 
-  <v-row dense>
+  <v-row density="compact">
     <v-col
       cols="6"
       md="3"

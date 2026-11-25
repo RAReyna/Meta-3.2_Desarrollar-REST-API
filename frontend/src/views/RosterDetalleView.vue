@@ -212,7 +212,10 @@ async function quitar() {
         cols="12"
         md="6"
       >
-        <v-card :title="grupo.titulo">
+        <v-card
+          :title="grupo.titulo"
+          :data-testid="grupo.esTitular ? 'titulares' : 'suplentes'"
+        >
           <v-progress-linear
             v-if="grupo.esTitular"
             :model-value="(titulares.length / MAX_TITULARES) * 100"
