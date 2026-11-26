@@ -4,7 +4,7 @@ Aplicación para gestionar jugadores de eSports y armar rosters de equipos (Leag
 Proyecto de Desarrollo Web, UABC.
 
 - **Backend:** Node.js con **ES modules** (`import` / `export`), Express 5 y **MySQL** con consultas SQL directas (`mysql2`).
-- **Frontend:** Vue 3 + Vuetify + TypeScript (Vite, Vue Router, Pinia).
+- **Frontend:** Vue 3 + Vuetify con JavaScript y **ES modules**, igual que el backend (Vite, Vue Router, Pinia).
 - Consulta pública: cualquiera puede ver jugadores y rosters sin cuenta.
 - Solo el administrador modifica datos: JWT en cookie HttpOnly y protección CSRF (double submit cookie).
 - Validación con Zod y documentación OpenAPI con Swagger UI.
@@ -38,16 +38,16 @@ Proyecto de Desarrollo Web, UABC.
         ├── controllers/     # entrada/salida HTTP y validación (Zod)
         └── services/        # reglas de negocio y consultas SQL
 └── frontend/
-    ├── vite.config.ts       # Vuetify, alias "@" y proxy /api → backend
-    ├── playwright.config.ts # pruebas e2e (lee backend/.env)
+    ├── vite.config.js       # Vuetify, alias "@" y proxy /api → backend
+    ├── playwright.config.js # pruebas e2e (lee backend/.env)
     ├── e2e/                 # npm run test:e2e
     └── src/
-        ├── main.ts          # crea la app con Pinia, router y Vuetify
+        ├── main.js          # crea la app con Pinia, router y Vuetify
         ├── App.vue          # barra superior, tema claro/oscuro y avisos
-        ├── api.ts           # fetch al API con el header CSRF
-        ├── errores.ts       # mensajes de error para el usuario
-        ├── types.ts         # tipos y valores válidos
-        ├── colores.ts       # colores de los chips por estado y tipo
+        ├── api.js           # fetch al API con el header CSRF
+        ├── errores.js       # mensajes de error para el usuario
+        ├── constantes.js    # valores válidos (los mismos que el backend)
+        ├── colores.js       # colores de los chips por estado y tipo
         ├── plugins/         # configuración de Vuetify (tema, español)
         ├── router/          # rutas y guard de sesión
         ├── stores/          # Pinia: sesión del usuario
@@ -190,9 +190,9 @@ inicia sesión con `ADMIN_EMAIL` y `ADMIN_PASSWORD`.
 | Comando            | Descripción                                          |
 | ------------------ | ---------------------------------------------------- |
 | `npm run dev`      | Servidor de desarrollo en http://localhost:5173      |
-| `npm run build`    | Revisa los tipos (`vue-tsc`) y genera `dist/`        |
+| `npm run build`    | Genera `dist/` para producción                       |
 | `npm run preview`  | Sirve el `dist/` generado                            |
-| `npm run lint`     | ESLint (reglas de Vue y TypeScript)                  |
+| `npm run lint`     | ESLint (reglas de JavaScript y de Vue)               |
 | `npm run format`   | Da formato al código con Prettier                    |
 | `npm run test:e2e` | Pruebas end-to-end con Playwright                    |
 
@@ -389,16 +389,16 @@ No hace falta levantar los servidores: Playwright inicia el backend y Vite, o re
 cd frontend
 npm run test:e2e                          # todas las pruebas
 npx playwright test --ui                  # modo visual, paso a paso
-npx playwright test e2e/public.spec.ts    # un solo archivo
+npx playwright test e2e/public.spec.js    # un solo archivo
 npx playwright test -g "registro"         # pruebas cuyo nombre contiene "registro"
 npx playwright show-report                # reporte HTML de la última corrida
 ```
 
 | Archivo                 | Pruebas | Qué cubre                                                                                     |
 | ----------------------- | ------- | --------------------------------------------------------------------------------------------- |
-| `e2e/public.spec.ts`    | 6       | Registro, consulta sin cuenta, filtros, detalle de roster, cuenta public sin controles de edición, rutas |
-| `e2e/admin.spec.ts`     | 7       | Login y logout, CRUD de jugadores y rosters, filtros, asignación y cambio de rol, reglas de negocio, sesión vencida |
-| `e2e/seguridad.spec.ts` | 8       | Cookie HttpOnly y SameSite, CSRF ausente, incorrecto o de otra sesión, rol public, sin sesión, JWT alterado, logout |
+| `e2e/public.spec.js`    | 6       | Registro, consulta sin cuenta, filtros, detalle de roster, cuenta public sin controles de edición, rutas |
+| `e2e/admin.spec.js`     | 7       | Login y logout, CRUD de jugadores y rosters, filtros, asignación y cambio de rol, reglas de negocio, sesión vencida |
+| `e2e/seguridad.spec.js` | 8       | Cookie HttpOnly y SameSite, CSRF ausente, incorrecto o de otra sesión, rol public, sin sesión, JWT alterado, logout |
 
 - Las pruebas corren una por una (comparten la base de datos) y borran los jugadores y rosters que crean.
 - Si una prueba falla, Playwright guarda una traza (capturas, red y DOM de cada paso) que se abre desde el reporte HTML.
@@ -407,4 +407,4 @@ npx playwright show-report                # reporte HTML de la última corrida
 
 **Backend:** Node.js (ES modules) · Express 5 · MySQL 8 · mysql2 · Zod · jsonwebtoken · bcryptjs · cookie-parser · OpenAPI 3 con Swagger UI
 
-**Frontend:** Vue 3 · Vuetify · TypeScript · Vite · Vue Router · Pinia · ESLint · Prettier · Playwright
+**Frontend:** Vue 3 · Vuetify · JavaScript (ES modules) · Vite · Vue Router · Pinia · ESLint · Prettier · Playwright

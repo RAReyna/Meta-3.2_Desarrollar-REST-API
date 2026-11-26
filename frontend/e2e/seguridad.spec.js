@@ -1,21 +1,13 @@
-import { expect, test, type APIRequestContext } from "@playwright/test";
-import {
-  S,
-  crearPublic,
-  limpiar,
-  loginAdmin,
-  logout,
-  sesionApi,
-  type SesionApi,
-} from "./helpers.ts";
+import { expect, test } from "@playwright/test";
+import { S, crearPublic, limpiar, loginAdmin, logout, sesionApi } from "./helpers.js";
 
 // La mayoría de estas pruebas atacan el API directamente, como lo haría
 // alguien fuera del navegador. El fixture `request` empieza sin cookies,
 // así que el header Cookie se arma a mano para controlar qué llega.
 
 const API = "/api/v1";
-let admin: SesionApi;
-let pub: SesionApi;
+let admin;
+let pub;
 
 test.beforeAll(async () => {
   admin = await sesionApi();
@@ -29,20 +21,17 @@ test.afterAll(async () => {
   await pub.cerrar();
 });
 
-async function cookiesDe(ses: SesionApi) {
+async function cookiesDe(ses) {
   const { cookies } = await ses.ctx.storageState();
-  const valor = (n: string) => cookies.find((c) => c.name === n)!.value;
+  const valor = (n) => cookies.find((c) => c.name === n).value;
   return { jwt: valor("jwt_token"), csrf: valor("csrf_token") };
 }
 
-const cookie = (jwt: string, csrf: string) => `jwt_token=${jwt}; csrf_token=${csrf}`;
+const cookie = (jwt, csrf) => `jwt_token=${jwt}; csrf_token=${csrf}`;
 
 // POST /jugadores con cookies y header CSRF elegidos a mano.
-function crearJugador(
-  request: APIRequestContext,
-  nickname: string,
-  c: { jwt: string; csrfCookie: string; csrfHeader: string },
-) {
+// c = { jwt, csrfCookie, csrfHeader }
+function crearJugador(request, nickname, c) {
   return request.post(`${API}/jugadores`, {
     data: { nickname, rol: "Top" },
     headers: {
@@ -52,7 +41,7 @@ function crearJugador(
   });
 }
 
-async function noExiste(nickname: string) {
+async function noExiste(nickname) {
   expect(await admin.get(`/jugadores?search=${nickname}`)).toHaveLength(0);
 }
 
@@ -69,7 +58,7 @@ test("S1 jwt_token es HttpOnly y SameSite=Strict", async ({ page }) => {
 
   // Un script en la página ve el token CSRF, pero no el JWT.
   // Se pasa como texto: se ejecuta en el navegador, no en Node.
-  const visibles: string = await page.evaluate("document.cookie");
+  const visibles = await page.evaluate("document.cookie");
   expect(visibles).toContain("csrf_token=");
   expect(visibles).not.toContain("jwt_token");
 });
@@ -127,8 +116,7 @@ test("S5 sin sesión: se puede leer pero no escribir (health sigue abierto)", as
 
 test("S6 JWT manipulado → 401", async ({ request }) => {
   const { jwt, csrf } = await cookiesDe(pub);
-  const me = (token: string) =>
-    request.get(`${API}/auth/me`, { headers: { Cookie: cookie(token, csrf) } });
+  const me = (token) => request.get(`${API}/auth/me`, { headers: { Cookie: cookie(token, csrf) } });
 
   // Control positivo: el token sin tocar funciona.
   expect((await me(jwt)).status()).toBe(200);

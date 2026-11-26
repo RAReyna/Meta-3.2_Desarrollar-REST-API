@@ -1,17 +1,7 @@
 import { expect, test } from "@playwright/test";
-import {
-  ADMIN,
-  S,
-  elegir,
-  filas,
-  limpiar,
-  loginAdmin,
-  logout,
-  sesionApi,
-  type SesionApi,
-} from "./helpers.ts";
+import { ADMIN, S, elegir, filas, limpiar, loginAdmin, logout, sesionApi } from "./helpers.js";
 
-let api: SesionApi;
+let api;
 
 test.beforeAll(async () => {
   api = await sesionApi();

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 // Detalle de un roster: titulares y suplentes. El admin además asigna
 // jugadores, cambia su rol en el roster y los quita.
 import { computed, ref } from "vue";
@@ -9,7 +9,7 @@ import { avisar } from "@/composables/aviso";
 import { useRecurso } from "@/composables/useRecurso";
 import { textoError } from "@/errores";
 import { useAuthStore } from "@/stores/auth";
-import { ROLES, type JugadorEnRoster, type RolEnRoster, type RosterDetalle } from "@/types";
+import { ROLES } from "@/constantes";
 import AsignarJugador from "@/components/AsignarJugador.vue";
 import ConfirmarDialogo from "@/components/ConfirmarDialogo.vue";
 
@@ -23,11 +23,11 @@ const {
   cargando,
   error,
   recargar,
-} = useRecurso<RosterDetalle | null>(() => api.get(`/rosters/${id}`), null);
+} = useRecurso(() => api.get(`/rosters/${id}`), null);
 
 // Los jugadores del roster con ese rol (titular o suplente), ordenados por
 // su posición en el juego (Top, Jungle, Mid...).
-function jugadoresCon(rolEnRoster: RolEnRoster) {
+function jugadoresCon(rolEnRoster) {
   return (roster.value?.jugadores ?? [])
     .filter((j) => j.rol_en_roster === rolEnRoster)
     .sort((a, b) => ROLES.indexOf(a.rol) - ROLES.indexOf(b.rol));
@@ -61,7 +61,7 @@ function alAsignar() {
 // Error al cambiar un rol: el backend rechaza un sexto titular o un rol repetido.
 const errorAccion = ref("");
 
-async function cambiarRol(jugador: JugadorEnRoster) {
+async function cambiarRol(jugador) {
   const rol_en_roster = jugador.rol_en_roster === "Titular" ? "Suplente" : "Titular";
   errorAccion.value = "";
   try {
@@ -74,9 +74,9 @@ async function cambiarRol(jugador: JugadorEnRoster) {
 }
 
 const confirmacion = ref(false);
-const porQuitar = ref<JugadorEnRoster | null>(null);
+const porQuitar = ref(null);
 
-function pedirQuitar(jugador: JugadorEnRoster) {
+function pedirQuitar(jugador) {
   porQuitar.value = jugador;
   confirmacion.value = true;
 }

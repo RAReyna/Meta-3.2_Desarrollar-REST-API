@@ -1,7 +1,6 @@
-<script setup lang="ts">
+<script setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
-import type { SubmitEventPromise } from "vuetify";
 import { ApiError } from "@/api";
 import { textoError } from "@/errores";
 import { useAuthStore } from "@/stores/auth";
@@ -16,12 +15,12 @@ const enviando = ref(false);
 
 // Mismas reglas que valida el backend (Zod); el backend sigue siendo quien decide.
 const reglasPassword = [
-  (v: string) => v.length >= 8 || "Mínimo 8 caracteres",
-  (v: string) => v.length <= 72 || "Máximo 72 caracteres",
+  (v) => v.length >= 8 || "Mínimo 8 caracteres",
+  (v) => v.length <= 72 || "Máximo 72 caracteres",
 ];
 
 // Registro abierto: el backend crea la cuenta con rol public y abre la sesión.
-async function crearCuenta(evento: SubmitEventPromise) {
+async function crearCuenta(evento) {
   if (!(await evento).valid) return;
   error.value = "";
   enviando.value = true;

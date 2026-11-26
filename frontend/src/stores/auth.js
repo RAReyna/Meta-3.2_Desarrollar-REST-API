@@ -1,16 +1,11 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import { api } from "@/api";
-import type { Usuario } from "@/types";
-
-interface RespuestaSesion {
-  usuario: Usuario;
-}
 
 // Sesión del usuario. La cookie la maneja el navegador; aquí solo
-// guardamos quién es el usuario para mostrarlo y saber si es admin.
+// guardamos quién es el usuario ({ id, email, rol }) para mostrarlo y saber si es admin.
 export const useAuthStore = defineStore("auth", () => {
-  const usuario = ref<Usuario | null>(null);
+  const usuario = ref(null);
   const esAdmin = computed(() => usuario.value?.rol === "admin");
   let sesionRevisada = false;
 
@@ -19,7 +14,7 @@ export const useAuthStore = defineStore("auth", () => {
   async function revisarSesion() {
     if (sesionRevisada) return;
     try {
-      usuario.value = (await api.get<RespuestaSesion>("/auth/me")).usuario;
+      usuario.value = (await api.get("/auth/me")).usuario;
     } catch {
       usuario.value = null;
     }
@@ -27,13 +22,13 @@ export const useAuthStore = defineStore("auth", () => {
   }
 
   // Login y registro responden igual: el backend deja la sesión abierta.
-  async function login(email: string, password: string) {
-    const r = await api.post<RespuestaSesion>("/auth/login", { email, password });
+  async function login(email, password) {
+    const r = await api.post("/auth/login", { email, password });
     usuario.value = r.usuario;
   }
 
-  async function registro(email: string, password: string) {
-    const r = await api.post<RespuestaSesion>("/auth/registro", { email, password });
+  async function registro(email, password) {
+    const r = await api.post("/auth/registro", { email, password });
     usuario.value = r.usuario;
   }
 

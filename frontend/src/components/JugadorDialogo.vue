@@ -1,16 +1,15 @@
-<script setup lang="ts">
+<script setup>
 // Formulario para crear un jugador (jugador = null) o editar uno existente.
 import { ref, watch } from "vue";
-import type { SubmitEventPromise } from "vuetify";
 import { api } from "@/api";
 import { textoError } from "@/errores";
-import { ESTADOS, ROLES, type Jugador, type JugadorInput } from "@/types";
+import { ESTADOS, ROLES } from "@/constantes";
 
-const abierto = defineModel<boolean>({ required: true });
-const props = defineProps<{ jugador: Jugador | null }>();
-const emit = defineEmits<{ guardado: [] }>();
+const abierto = defineModel({ type: Boolean, required: true });
+const props = defineProps({ jugador: { type: Object, default: null } });
+const emit = defineEmits(["guardado"]);
 
-const vacio = (): JugadorInput => ({
+const vacio = () => ({
   nickname: "",
   nombre_real: "",
   pais: "",
@@ -18,10 +17,10 @@ const vacio = (): JugadorInput => ({
   estado: "activo",
 });
 
-const form = ref<JugadorInput>(vacio());
+const form = ref(vacio());
 const error = ref("");
 const enviando = ref(false);
-const requerido = (v: string) => v.trim() !== "" || "Obligatorio";
+const requerido = (v) => v.trim() !== "" || "Obligatorio";
 
 // Cada vez que se abre, llena el formulario con el jugador a editar o lo deja vacío.
 watch(abierto, (estaAbierto) => {
@@ -39,7 +38,7 @@ watch(abierto, (estaAbierto) => {
     : vacio();
 });
 
-async function guardar(evento: SubmitEventPromise) {
+async function guardar(evento) {
   if (!(await evento).valid) return;
   enviando.value = true;
   error.value = "";

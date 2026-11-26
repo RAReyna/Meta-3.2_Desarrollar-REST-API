@@ -1,19 +1,9 @@
-import { expect, test, type Page } from "@playwright/test";
-import {
-  S,
-  crearPublic,
-  elegir,
-  filas,
-  limpiar,
-  loginUI,
-  logout,
-  sesionApi,
-  type SesionApi,
-} from "./helpers.ts";
+import { expect, test } from "@playwright/test";
+import { S, crearPublic, elegir, filas, limpiar, loginUI, logout, sesionApi } from "./helpers.js";
 
-let api: SesionApi;
-let cuenta: { email: string; password: string };
-let principal: { id: number };
+let api;
+let cuenta;
+let principal;
 
 // Datos de prueba preparados por el admin; temporada = S para filtrarlos.
 test.beforeAll(async () => {
@@ -47,8 +37,8 @@ test.afterAll(async () => {
 const CONTROLES_ADMIN = ["nuevo-jugador", "nuevo-roster", "asignar-jugador", "asignar-submit"];
 
 // Revisa jugadores, rosters y un detalle: cargan los datos y no hay controles de edición.
-async function soloLectura(page: Page) {
-  const paginas: [string, string][] = [
+async function soloLectura(page) {
+  const paginas = [
     ["/jugadores", "tabla-jugadores"],
     ["/rosters", "tabla-rosters"],
     [`/rosters/${principal.id}`, "titulares"],

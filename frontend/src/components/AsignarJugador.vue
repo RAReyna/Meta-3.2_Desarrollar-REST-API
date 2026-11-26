@@ -1,16 +1,19 @@
-<script setup lang="ts">
+<script setup>
 // Formulario del admin para agregar un jugador al roster como titular o suplente.
 // Los errores de las reglas del roster (5 titulares, rol repetido...) se muestran aquí.
 import { computed, reactive, ref } from "vue";
 import { api } from "@/api";
 import { useRecurso } from "@/composables/useRecurso";
 import { textoError } from "@/errores";
-import { ROLES_EN_ROSTER, type Jugador, type RolEnRoster } from "@/types";
+import { ROLES_EN_ROSTER } from "@/constantes";
 
-const props = defineProps<{ idRoster: number; yaEnRoster: number[] }>();
-const emit = defineEmits<{ asignado: [] }>();
+const props = defineProps({
+  idRoster: { type: Number, required: true },
+  yaEnRoster: { type: Array, required: true }, // ids de los jugadores que ya están
+});
+const emit = defineEmits(["asignado"]);
 
-const { datos: jugadores } = useRecurso(() => api.get<Jugador[]>("/jugadores"), [] as Jugador[]);
+const { datos: jugadores } = useRecurso(() => api.get("/jugadores"), []);
 
 // Solo los jugadores que todavía no están en el roster.
 const disponibles = computed(() =>
@@ -20,8 +23,8 @@ const disponibles = computed(() =>
 );
 
 const asignacion = reactive({
-  id_jugador: null as number | null,
-  rol_en_roster: "Suplente" as RolEnRoster,
+  id_jugador: null,
+  rol_en_roster: "Suplente",
 });
 const enviando = ref(false);
 const error = ref("");

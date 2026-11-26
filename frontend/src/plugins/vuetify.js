@@ -6,7 +6,7 @@ import { es } from "vuetify/locale";
 const CLAVE_TEMA = "tema";
 
 // Tema guardado por el usuario; si no eligió ninguno, el del sistema.
-function temaGuardado(): string {
+function temaGuardado() {
   try {
     return localStorage.getItem(CLAVE_TEMA) ?? "system";
   } catch {
@@ -14,7 +14,7 @@ function temaGuardado(): string {
   }
 }
 
-export function guardarTema(nombre: string) {
+export function guardarTema(nombre) {
   try {
     localStorage.setItem(CLAVE_TEMA, nombre);
   } catch {

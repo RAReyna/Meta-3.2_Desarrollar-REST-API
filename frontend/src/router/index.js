@@ -7,14 +7,9 @@ import RosterDetalleView from "@/views/RosterDetalleView.vue";
 import LoginView from "@/views/LoginView.vue";
 import RegistroView from "@/views/RegistroView.vue";
 
-declare module "vue-router" {
-  interface RouteMeta {
-    invitado?: boolean; // solo sin sesión (login, registro)
-  }
-}
-
 // Todas las páginas son públicas. El admin usa las mismas y además
 // ve los botones para crear, editar y eliminar.
+// meta.invitado: la página es solo para quien no tiene sesión (login, registro).
 const router = createRouter({
   history: createWebHistory(),
   routes: [

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 // Lista de jugadores con búsqueda y filtros. El admin además crea, edita y elimina.
 import { computed, reactive, ref } from "vue";
 import { useDisplay } from "vuetify";
@@ -7,25 +7,20 @@ import { COLOR_ESTADO } from "@/colores";
 import { avisar } from "@/composables/aviso";
 import { useRecurso } from "@/composables/useRecurso";
 import { useAuthStore } from "@/stores/auth";
-import { ESTADOS, ROLES, type EstadoJugador, type Jugador, type RolJugador } from "@/types";
+import { ESTADOS, ROLES } from "@/constantes";
 import ConfirmarDialogo from "@/components/ConfirmarDialogo.vue";
 import JugadorDialogo from "@/components/JugadorDialogo.vue";
 
 const auth = useAuthStore();
 const { smAndDown: esCelular } = useDisplay();
 
-const {
-  datos: jugadores,
-  cargando,
-  error,
-  recargar,
-} = useRecurso(() => api.get<Jugador[]>("/jugadores"), []);
+const { datos: jugadores, cargando, error, recargar } = useRecurso(() => api.get("/jugadores"), []);
 
 // Los filtros se aplican aquí mismo, sin volver a pedir los datos.
 const filtros = reactive({
-  texto: "" as string | null,
-  rol: null as RolJugador | null,
-  estado: null as EstadoJugador | null,
+  texto: "", // al borrarlo con la "x", Vuetify lo deja en null
+  rol: null,
+  estado: null,
 });
 
 const visibles = computed(() => {
@@ -44,14 +39,14 @@ const columnas = computed(() => [
   { title: "País", key: "pais" },
   { title: "Rol", key: "rol" },
   { title: "Estado", key: "estado" },
-  ...(auth.esAdmin ? [{ title: "", key: "acciones", sortable: false, align: "end" as const }] : []),
+  ...(auth.esAdmin ? [{ title: "", key: "acciones", sortable: false, align: "end" }] : []),
 ]);
 
 // ---- Crear / editar ----
 const dialogo = ref(false);
-const editando = ref<Jugador | null>(null);
+const editando = ref(null);
 
-function abrirFormulario(jugador: Jugador | null) {
+function abrirFormulario(jugador) {
   editando.value = jugador;
   dialogo.value = true;
 }
@@ -63,9 +58,9 @@ function alGuardar() {
 
 // ---- Eliminar ----
 const confirmacion = ref(false);
-const porEliminar = ref<Jugador | null>(null);
+const porEliminar = ref(null);
 
-function pedirEliminar(jugador: Jugador) {
+function pedirEliminar(jugador) {
   porEliminar.value = jugador;
   confirmacion.value = true;
 }
@@ -130,7 +125,7 @@ async function eliminar() {
       <v-chip :text="value" size="small" variant="tonal" />
     </template>
     <template #item.estado="{ value }">
-      <v-chip :text="value" :color="COLOR_ESTADO[value as EstadoJugador]" size="small" />
+      <v-chip :text="value" :color="COLOR_ESTADO[value]" size="small" />
     </template>
     <template #item.acciones="{ item }">
       <v-btn

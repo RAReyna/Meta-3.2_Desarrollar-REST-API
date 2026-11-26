@@ -1,25 +1,24 @@
-<script setup lang="ts">
+<script setup>
 // Formulario para crear un roster (roster = null) o editar uno existente.
 import { ref, watch } from "vue";
-import type { SubmitEventPromise } from "vuetify";
 import { api } from "@/api";
 import { textoError } from "@/errores";
-import { TIPOS_ROSTER, type Roster, type RosterInput } from "@/types";
+import { TIPOS_ROSTER } from "@/constantes";
 
-const abierto = defineModel<boolean>({ required: true });
-const props = defineProps<{ roster: Roster | null }>();
-const emit = defineEmits<{ guardado: [] }>();
+const abierto = defineModel({ type: Boolean, required: true });
+const props = defineProps({ roster: { type: Object, default: null } });
+const emit = defineEmits(["guardado"]);
 
-const vacio = (): RosterInput => ({
+const vacio = () => ({
   nombre: "",
   tipo: "Principal",
   temporada: String(new Date().getFullYear()),
 });
 
-const form = ref<RosterInput>(vacio());
+const form = ref(vacio());
 const error = ref("");
 const enviando = ref(false);
-const requerido = (v: string) => v.trim() !== "" || "Obligatorio";
+const requerido = (v) => v.trim() !== "" || "Obligatorio";
 
 // Cada vez que se abre, llena el formulario con el roster a editar o lo deja vacío.
 watch(abierto, (estaAbierto) => {
@@ -29,7 +28,7 @@ watch(abierto, (estaAbierto) => {
   form.value = r ? { nombre: r.nombre, tipo: r.tipo, temporada: r.temporada } : vacio();
 });
 
-async function guardar(evento: SubmitEventPromise) {
+async function guardar(evento) {
   if (!(await evento).valid) return;
   enviando.value = true;
   error.value = "";

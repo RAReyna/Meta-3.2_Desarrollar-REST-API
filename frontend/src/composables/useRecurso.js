@@ -1,10 +1,10 @@
-import { ref, type Ref } from "vue";
+import { ref } from "vue";
 import { textoError } from "@/errores";
 
 // Carga datos del API al crear la página y lleva la cuenta de "cargando" y del error.
 // recargar() vuelve a pedirlos, por ejemplo después de guardar un cambio.
-export function useRecurso<T>(cargar: () => Promise<T>, inicial: T) {
-  const datos = ref(inicial) as Ref<T>;
+export function useRecurso(cargar, inicial) {
+  const datos = ref(inicial);
   const cargando = ref(false);
   const error = ref("");
 

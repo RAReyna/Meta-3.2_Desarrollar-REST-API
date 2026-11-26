@@ -1,30 +1,28 @@
 const BASE = "/api/v1";
 
+// Error con el código HTTP y, si los hay, los detalles de validación del backend.
 export class ApiError extends Error {
-  status: number;
-  detalles?: unknown;
-
-  constructor(status: number, mensaje: string, detalles?: unknown) {
+  constructor(status, mensaje, detalles) {
     super(mensaje);
     this.status = status;
     this.detalles = detalles;
   }
 }
 
-// Qué hacer cuando la sesión vence con la página abierta (lo define main.ts).
+// Qué hacer cuando la sesión vence con la página abierta (lo define main.js).
 let alVencerSesion = () => {};
-export function cuandoVenzaLaSesion(accion: () => void) {
+export function cuandoVenzaLaSesion(accion) {
   alVencerSesion = accion;
 }
 
 // La cookie csrf_token NO es HttpOnly: el frontend la lee y la reenvía en un header.
-function leerCookie(nombre: string): string | undefined {
+function leerCookie(nombre) {
   const par = document.cookie.split("; ").find((c) => c.startsWith(nombre + "="));
   return par ? decodeURIComponent(par.slice(nombre.length + 1)) : undefined;
 }
 
-async function pedir<T>(metodo: string, ruta: string, body?: unknown): Promise<T> {
-  const headers: Record<string, string> = {};
+async function pedir(metodo, ruta, body) {
+  const headers = {};
   if (body !== undefined) headers["Content-Type"] = "application/json";
 
   if (metodo !== "GET" && metodo !== "HEAD") {
@@ -39,7 +37,7 @@ async function pedir<T>(metodo: string, ruta: string, body?: unknown): Promise<T
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 
-  if (res.status === 204) return undefined as T;
+  if (res.status === 204) return undefined;
 
   const data = await res.json().catch(() => null);
   if (!res.ok) {
@@ -48,12 +46,12 @@ async function pedir<T>(metodo: string, ruta: string, body?: unknown): Promise<T
     if (res.status === 401 && !ruta.startsWith("/auth/")) alVencerSesion();
     throw new ApiError(res.status, data?.error ?? res.statusText, data?.detalles);
   }
-  return data as T;
+  return data;
 }
 
 export const api = {
-  get: <T>(ruta: string) => pedir<T>("GET", ruta),
-  post: <T>(ruta: string, body?: unknown) => pedir<T>("POST", ruta, body),
-  put: <T>(ruta: string, body?: unknown) => pedir<T>("PUT", ruta, body),
-  del: <T = void>(ruta: string) => pedir<T>("DELETE", ruta),
+  get: (ruta) => pedir("GET", ruta),
+  post: (ruta, body) => pedir("POST", ruta, body),
+  put: (ruta, body) => pedir("PUT", ruta, body),
+  del: (ruta) => pedir("DELETE", ruta),
 };

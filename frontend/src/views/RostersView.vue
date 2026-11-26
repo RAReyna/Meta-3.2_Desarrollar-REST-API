@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 // Lista de rosters con filtros. Clic en una fila → detalle del roster.
 // El admin además crea, edita y elimina.
 import { computed, reactive, ref } from "vue";
@@ -9,7 +9,7 @@ import { COLOR_TIPO } from "@/colores";
 import { avisar } from "@/composables/aviso";
 import { useRecurso } from "@/composables/useRecurso";
 import { useAuthStore } from "@/stores/auth";
-import { TIPOS_ROSTER, type Roster, type TipoRoster } from "@/types";
+import { TIPOS_ROSTER } from "@/constantes";
 import ConfirmarDialogo from "@/components/ConfirmarDialogo.vue";
 import RosterDialogo from "@/components/RosterDialogo.vue";
 
@@ -17,17 +17,12 @@ const auth = useAuthStore();
 const router = useRouter();
 const { smAndDown: esCelular } = useDisplay();
 
-const {
-  datos: rosters,
-  cargando,
-  error,
-  recargar,
-} = useRecurso(() => api.get<Roster[]>("/rosters"), []);
+const { datos: rosters, cargando, error, recargar } = useRecurso(() => api.get("/rosters"), []);
 
 // Los filtros se aplican aquí mismo, sin volver a pedir los datos.
 const filtros = reactive({
-  tipo: null as TipoRoster | null,
-  temporada: null as string | null,
+  tipo: null,
+  temporada: null,
 });
 
 // Las temporadas que existen, para el filtro.
@@ -45,19 +40,19 @@ const columnas = computed(() => [
   { title: "Nombre", key: "nombre" },
   { title: "Tipo", key: "tipo" },
   { title: "Temporada", key: "temporada" },
-  { title: "Jugadores", key: "cantidad_jugadores", align: "end" as const },
-  ...(auth.esAdmin ? [{ title: "", key: "acciones", sortable: false, align: "end" as const }] : []),
+  { title: "Jugadores", key: "cantidad_jugadores", align: "end" },
+  ...(auth.esAdmin ? [{ title: "", key: "acciones", sortable: false, align: "end" }] : []),
 ]);
 
-function verDetalle(_evento: Event, fila: { item: Roster }) {
+function verDetalle(_evento, fila) {
   router.push(`/rosters/${fila.item.id}`);
 }
 
 // ---- Crear / editar ----
 const dialogo = ref(false);
-const editando = ref<Roster | null>(null);
+const editando = ref(null);
 
-function abrirFormulario(roster: Roster | null) {
+function abrirFormulario(roster) {
   editando.value = roster;
   dialogo.value = true;
 }
@@ -69,9 +64,9 @@ function alGuardar() {
 
 // ---- Eliminar ----
 const confirmacion = ref(false);
-const porEliminar = ref<Roster | null>(null);
+const porEliminar = ref(null);
 
-function pedirEliminar(roster: Roster) {
+function pedirEliminar(roster) {
   porEliminar.value = roster;
   confirmacion.value = true;
 }
@@ -120,7 +115,7 @@ async function eliminar() {
     @click:row="verDetalle"
   >
     <template #item.tipo="{ value }">
-      <v-chip :text="value" :color="COLOR_TIPO[value as TipoRoster]" size="small" />
+      <v-chip :text="value" :color="COLOR_TIPO[value]" size="small" />
     </template>
     <template #item.acciones="{ item }">
       <!-- .stop: el clic en el botón no abre el detalle -->

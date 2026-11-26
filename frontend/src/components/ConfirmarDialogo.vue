@@ -1,15 +1,15 @@
-<script setup lang="ts">
+<script setup>
 // Diálogo "¿Seguro?" antes de eliminar. Ejecuta `accion`; si falla, muestra
 // el error y queda abierto; si funciona, se cierra.
 import { ref, watch } from "vue";
 import { textoError } from "@/errores";
 
-const abierto = defineModel<boolean>({ required: true });
-const props = defineProps<{
-  titulo: string;
-  texto: string;
-  accion: () => Promise<void>;
-}>();
+const abierto = defineModel({ type: Boolean, required: true });
+const props = defineProps({
+  titulo: { type: String, required: true },
+  texto: { type: String, required: true },
+  accion: { type: Function, required: true }, // función async que hace la eliminación
+});
 
 const enviando = ref(false);
 const error = ref("");

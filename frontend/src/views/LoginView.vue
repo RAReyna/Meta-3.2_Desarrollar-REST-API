@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ApiError } from "@/api";

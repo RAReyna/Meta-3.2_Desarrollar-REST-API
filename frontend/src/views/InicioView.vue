@@ -1,16 +1,14 @@
-<script setup lang="ts">
+<script setup>
 // Portada: dos tarjetas, una para jugadores y otra para rosters.
 import { computed } from "vue";
 import { api } from "@/api";
 import { useRecurso } from "@/composables/useRecurso";
-import type { Jugador, Roster } from "@/types";
 
-const jugadores = useRecurso(() => api.get<Jugador[]>("/jugadores"), []);
-const rosters = useRecurso(() => api.get<Roster[]>("/rosters"), []);
+const jugadores = useRecurso(() => api.get("/jugadores"), []);
+const rosters = useRecurso(() => api.get("/rosters"), []);
 
 // Texto con el total, o "Cargando…" mientras llega.
-const total = (cargando: boolean, cantidad: number, nombre: string) =>
-  cargando ? "Cargando…" : `${cantidad} ${nombre}`;
+const total = (cargando, cantidad, nombre) => (cargando ? "Cargando…" : `${cantidad} ${nombre}`);
 
 const tarjetas = computed(() => [
   {
