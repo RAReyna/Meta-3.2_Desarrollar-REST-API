@@ -200,3 +200,42 @@ test("A7 sesión vencida con la página abierta → login y de regreso", async (
   await expect(page).toHaveURL("/jugadores");
   await expect(page.getByTestId("nuevo-jugador")).toBeVisible();
 });
+
+test("A8 dos titulares no pueden tener el mismo rol (RN-03)", async ({ page }) => {
+  const roster = await api.post("/rosters", {
+    nombre: `A8 ${S}`,
+    tipo: "Principal",
+    temporada: "2026",
+  });
+  const mid1 = await api.post("/jugadores", { nickname: `A8mid1${S}`, rol: "Mid" });
+  const mid2 = await api.post("/jugadores", { nickname: `A8mid2${S}`, rol: "Mid" });
+  const mid3 = await api.post("/jugadores", { nickname: `A8mid3${S}`, rol: "Mid" });
+  await api.post(`/rosters/${roster.id}/jugadores`, {
+    id_jugador: mid1.id,
+    rol_en_roster: "Titular",
+  });
+  await api.post(`/rosters/${roster.id}/jugadores`, {
+    id_jugador: mid2.id,
+    rol_en_roster: "Suplente",
+  });
+  await loginAdmin(page);
+  await page.goto(`/rosters/${roster.id}`);
+  const titulares = page.getByTestId("titulares");
+  const suplentes = page.getByTestId("suplentes");
+
+  // Al asignar: otro Mid como titular → error en el formulario
+  await elegir(page, "Jugador", `${mid3.nickname} (Mid)`);
+  await page.getByRole("button", { name: "Titular", exact: true }).click();
+  await page.getByTestId("asignar-submit").click();
+  await expect(page.getByTestId("asignar-error")).toContainText("Ya hay un titular con el rol Mid");
+
+  // Al cambiar de rol: el suplente Mid no puede subir a titular
+  await page.getByRole("button", { name: `Hacer titular a ${mid2.nickname}` }).click();
+  await expect(page.getByTestId("error-accion")).toContainText("Ya hay un titular con el rol Mid");
+
+  // Nada cambió: un solo titular (mid1) y mid2 sigue de suplente; mid3 no se asignó
+  await page.reload();
+  await expect(titulares).toContainText("Titulares (1/5)");
+  await expect(titulares.getByTestId("jugador-en-roster")).toHaveText([`Mid${mid1.nickname}`]);
+  await expect(suplentes.getByTestId("jugador-en-roster")).toHaveText([`Mid${mid2.nickname}`]);
+});
