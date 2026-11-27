@@ -1,7 +1,7 @@
 // Llena la base de datos con jugadores y rosters de ejemplo.
 // Se puede correr varias veces: lo que ya existe no se duplica.
 import "dotenv/config";
-import pool, { enTransaccion } from "../src/db.js";
+import { sequelize, Jugador, Roster, RosterJugador } from "../models/index.js";
 
 // [nickname, nombre real, país, rol, estado]
 const JUGADORES = [
@@ -75,50 +75,49 @@ const ROSTERS = [
   },
 ];
 
-await enTransaccion(async (db) => {
-  // Jugadores: INSERT IGNORE salta los nicknames que ya existen.
-  for (const fila of JUGADORES) {
-    await db.query(
-      `INSERT IGNORE INTO jugadores (nickname, nombre_real, pais, rol, estado)
-       VALUES (?, ?, ?, ?, ?)`,
-      fila,
-    );
-  }
-  const [filas] = await db.query("SELECT id, nickname FROM jugadores");
-  const idDe = Object.fromEntries(filas.map((j) => [j.nickname, j.id]));
+await sequelize.transaction(async (t) => {
+  // Jugadores: ignoreDuplicates (INSERT IGNORE) salta los nicknames que ya existen.
+  await Jugador.bulkCreate(
+    JUGADORES.map(([nickname, nombre_real, pais, rol, estado]) => ({
+      nickname,
+      nombre_real,
+      pais,
+      rol,
+      estado,
+    })),
+    { ignoreDuplicates: true, transaction: t },
+  );
+  const jugadores = await Jugador.findAll({ attributes: ["id", "nickname"], transaction: t });
+  const idDe = Object.fromEntries(jugadores.map((j) => [j.nickname, j.id]));
 
   for (const roster of ROSTERS) {
     // Rosters: se identifican por nombre + temporada.
-    const [[existente]] = await db.query(
-      "SELECT id FROM rosters WHERE nombre = ? AND temporada = ?",
-      [roster.nombre, roster.temporada],
-    );
-    let idRoster = existente?.id;
-    if (!idRoster) {
-      const [resultado] = await db.query(
-        "INSERT INTO rosters (nombre, tipo, temporada) VALUES (?, ?, ?)",
-        [roster.nombre, roster.tipo, roster.temporada],
-      );
-      idRoster = resultado.insertId;
-    }
+    const [{ id: idRoster }] = await Roster.findOrCreate({
+      where: { nombre: roster.nombre, temporada: roster.temporada },
+      defaults: { tipo: roster.tipo },
+      transaction: t,
+    });
 
     // Asignaciones: el índice único (id_roster, id_jugador) evita repetirlas.
     const asignaciones = [
       ...roster.titulares.map((nickname) => [nickname, "Titular"]),
       ...roster.suplentes.map((nickname) => [nickname, "Suplente"]),
     ];
-    for (const [nickname, rolEnRoster] of asignaciones) {
+    for (const [nickname] of asignaciones) {
       if (!idDe[nickname]) throw new Error(`Jugador desconocido: ${nickname}`);
-      await db.query(
-        `INSERT IGNORE INTO roster_jugador (id_roster, id_jugador, rol_en_roster)
-         VALUES (?, ?, ?)`,
-        [idRoster, idDe[nickname], rolEnRoster],
-      );
     }
+    await RosterJugador.bulkCreate(
+      asignaciones.map(([nickname, rol_en_roster]) => ({
+        id_roster: idRoster,
+        id_jugador: idDe[nickname],
+        rol_en_roster,
+      })),
+      { ignoreDuplicates: true, transaction: t },
+    );
   }
 });
 
-const [[{ jugadores }]] = await pool.query("SELECT COUNT(*) AS jugadores FROM jugadores");
-const [[{ rosters }]] = await pool.query("SELECT COUNT(*) AS rosters FROM rosters");
+const jugadores = await Jugador.count();
+const rosters = await Roster.count();
 console.log(`Datos de ejemplo listos. En la base: ${jugadores} jugadores, ${rosters} rosters.`);
-await pool.end();
+await sequelize.close();

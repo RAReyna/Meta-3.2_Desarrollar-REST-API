@@ -1,65 +1,53 @@
-import pool, { armarWhere } from "../db.js";
+import { Op } from "sequelize";
+import { Jugador } from "../../models/index.js";
 import { HttpError } from "../errors.js";
 
 export async function obtener(id) {
-  const sql = "SELECT * FROM jugadores WHERE id = ?";
-  const [[jugador]] = await pool.query(sql, [id]);
+  const jugador = await Jugador.findByPk(id);
   if (!jugador) throw new HttpError(404, "Jugador no encontrado");
   return jugador;
 }
 
 export async function listar({ rol, estado, search }) {
-  const filtros = [];
-  if (rol) filtros.push(["rol = ?", rol]);
-  if (estado) filtros.push(["estado = ?", estado]);
-  if (search) filtros.push(["nickname LIKE ?", `%${search}%`]);
+  const where = {};
+  if (rol) where.rol = rol;
+  if (estado) where.estado = estado;
+  if (search) where.nickname = { [Op.like]: `%${search}%` };
 
-  const { where, valores } = armarWhere(filtros);
-  const sql = `SELECT * FROM jugadores ${where} ORDER BY id`;
-  const [jugadores] = await pool.query(sql, valores);
-  return jugadores;
+  return Jugador.findAll({ where, order: [["id", "ASC"]] });
 }
 
-// RN-01: el nickname es único (el collation ignora mayúsculas).
-// idActual: al editar, el propio jugador no cuenta como duplicado.
 async function validarNickname(nickname, idActual = 0) {
-  const sql = "SELECT id FROM jugadores WHERE nickname = ? AND id <> ?";
-  const [[otro]] = await pool.query(sql, [nickname, idActual]);
+  const otro = await Jugador.findOne({
+    where: { nickname, id: { [Op.ne]: idActual } },
+    attributes: ["id"],
+  });
   if (otro) throw new HttpError(409, "El nickname ya existe");
 }
 
 // Los campos opcionales que no llegan se guardan como null.
-const valoresDe = (datos) => [
-  datos.nickname,
-  datos.nombre_real ?? null,
-  datos.pais ?? null,
-  datos.rol,
-  datos.estado,
-];
+const camposDe = (datos) => ({
+  nickname: datos.nickname,
+  nombre_real: datos.nombre_real ?? null,
+  pais: datos.pais ?? null,
+  rol: datos.rol,
+  estado: datos.estado,
+});
 
 export async function crear(datos) {
   await validarNickname(datos.nickname);
-  const sql = `INSERT INTO jugadores (nickname, nombre_real, pais, rol, estado)
-               VALUES (?, ?, ?, ?, ?)`;
-  const [resultado] = await pool.query(sql, valoresDe(datos));
-  return obtener(resultado.insertId);
+  const jugador = await Jugador.create(camposDe(datos));
+  return obtener(jugador.id);
 }
 
 // PUT reemplaza todos los campos.
 export async function actualizar(id, datos) {
-  await obtener(id);
+  const jugador = await obtener(id);
   await validarNickname(datos.nickname, id);
-  const sql = `UPDATE jugadores
-               SET nickname = ?, nombre_real = ?, pais = ?, rol = ?, estado = ?
-               WHERE id = ?`;
-  await pool.query(sql, [...valoresDe(datos), id]);
-  return obtener(id);
+  return jugador.update(camposDe(datos));
 }
 
 export async function eliminar(id) {
-  const sql = "DELETE FROM jugadores WHERE id = ?";
-  const [resultado] = await pool.query(sql, [id]);
-  if (resultado.affectedRows === 0) {
-    throw new HttpError(404, "Jugador no encontrado");
-  }
+  const borrados = await Jugador.destroy({ where: { id } });
+  if (borrados === 0) throw new HttpError(404, "Jugador no encontrado");
 }

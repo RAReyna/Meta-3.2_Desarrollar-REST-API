@@ -1,19 +1,14 @@
-import pool from "../db.js";
+import { Usuario } from "../../models/index.js";
 
-export async function buscarPorEmail(email) {
-  const sql = "SELECT * FROM usuarios WHERE email = ?";
-  const [[usuario]] = await pool.query(sql, [email]);
-  return usuario;
+export function buscarPorEmail(email) {
+  return Usuario.findOne({ where: { email } });
 }
 
-export async function buscarPorId(id) {
-  const sql = "SELECT * FROM usuarios WHERE id = ?";
-  const [[usuario]] = await pool.query(sql, [id]);
-  return usuario;
+export function buscarPorId(id) {
+  return Usuario.findByPk(id);
 }
 
 export async function crear({ email, passwordHash, rol }) {
-  const sql = "INSERT INTO usuarios (email, password_hash, rol) VALUES (?, ?, ?)";
-  const [resultado] = await pool.query(sql, [email, passwordHash, rol]);
-  return { id: resultado.insertId, email, rol };
+  const usuario = await Usuario.create({ email, password_hash: passwordHash, rol });
+  return { id: usuario.id, email: usuario.email, rol: usuario.rol };
 }

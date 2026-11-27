@@ -1,4 +1,4 @@
-// Valores válidos. Deben coincidir con los ENUM de db/schema.sql.
+// Valores válidos. Deben coincidir con los ENUM de las migraciones (migrations/).
 export const ROLES = ["Top", "Jungle", "Mid", "ADC", "Support"];
 export const ESTADOS = ["activo", "inactivo"];
 export const TIPOS_ROSTER = ["Principal", "Academy"];

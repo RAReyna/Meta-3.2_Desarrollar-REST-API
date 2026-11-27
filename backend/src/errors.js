@@ -23,11 +23,17 @@ export function manejarErrores(err, req, res, next) {
       .json({ error: "Datos inválidos", detalles: err.issues });
   }
 
-  // Errores de MySQL
-  if (err.code === "ER_DUP_ENTRY") {
+  // Errores de Sequelize (el error original de MySQL queda en err.parent)
+  if (err.name === "SequelizeUniqueConstraintError") {
     return res.status(409).json({ error: "Registro duplicado" });
   }
-  if (err.code === "ER_DATA_TOO_LONG") {
+  if (err.name === "SequelizeValidationError") {
+    return res.status(400).json({
+      error: "Datos inválidos",
+      detalles: err.errors.map((e) => ({ message: e.message, path: [e.path] })),
+    });
+  }
+  if (err.parent?.code === "ER_DATA_TOO_LONG") {
     return res.status(400).json({
       error: "Datos inválidos",
       detalles: [{ message: "Un campo excede la longitud máxima" }],

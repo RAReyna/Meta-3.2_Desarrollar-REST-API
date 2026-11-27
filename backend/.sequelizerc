@@ -1,0 +1,13 @@
+import path from "node:path";
+
+const config = path.resolve("config", "database.js");
+const modelos = path.resolve("models");
+const migraciones = path.resolve("migrations");
+const seeders = path.resolve("seeders");
+
+export {
+  config,
+  modelos as "models-path",
+  migraciones as "migrations-path",
+  seeders as "seeders-path",
+};

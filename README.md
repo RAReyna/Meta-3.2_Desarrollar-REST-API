@@ -3,7 +3,7 @@
 Aplicación para gestionar jugadores de eSports y armar rosters de equipos (League of Legends).
 Proyecto de Desarrollo Web, UABC.
 
-- **Backend:** Node.js con **ES modules** (`import` / `export`), Express 5 y **MySQL** con consultas SQL directas (`mysql2`).
+- **Backend:** Node.js con **ES modules** (`import` / `export`), Express 5 y **MySQL** con el ORM **Sequelize** (modelos, asociaciones y migraciones).
 - **Frontend:** Vue 3 + Vuetify con JavaScript y **ES modules**, igual que el backend (Vite, Vue Router, Pinia).
 - Consulta pública: cualquiera puede ver jugadores y rosters sin cuenta.
 - Solo el administrador modifica datos: JWT en cookie HttpOnly y protección CSRF (double submit cookie).
@@ -20,23 +20,25 @@ Proyecto de Desarrollo Web, UABC.
     ├── openapi.yaml         # especificación OpenAPI (visible en /docs)
     ├── api.http             # peticiones para probar a mano (REST Client)
     ├── .env.example         # plantilla de variables de entorno
-    ├── db/
-    │   └── schema.sql       # tablas de la base de datos
+    ├── .sequelizerc         # rutas que usa sequelize-cli
+    ├── config/
+    │   └── database.js      # conexión desde el .env (app y sequelize-cli)
+    ├── models/              # modelos de Sequelize (estilo sequelize-cli); cada uno define sus asociaciones
+    ├── migrations/          # tablas de la base de datos (npm run db:migrate)
     ├── scripts/
-    │   ├── crear-tablas.js  # npm run db:init
     │   ├── crear-admin.js   # npm run seed:admin
     │   └── llenar-datos.js  # npm run seed:datos
     ├── test/
     │   └── endpoints.js     # npm test
     └── src/
         ├── app.js           # Express: middlewares, rutas y /docs
-        ├── db.js            # pool de MySQL y helper de transacciones
+        ├── db.js            # instancia de Sequelize (pool de conexiones)
         ├── errors.js        # HttpError y manejo de errores
         ├── constantes.js    # roles, estados y tipos válidos
         ├── middleware/      # autenticación, CSRF y rol admin
         ├── routes/          # URLs → controllers
         ├── controllers/     # entrada/salida HTTP y validación (Zod)
-        └── services/        # reglas de negocio y consultas SQL
+        └── services/        # reglas de negocio y consultas con los modelos
 └── frontend/
     ├── vite.config.js       # Vuetify, alias "@" y proxy /api → backend
     ├── playwright.config.js # pruebas e2e (lee backend/.env)
@@ -56,14 +58,14 @@ Proyecto de Desarrollo Web, UABC.
         └── views/           # portada, jugadores, rosters, detalle, login, registro
 ```
 
-En el backend, cada petición sigue el mismo camino: `routes` → `controllers` (valida) → `services` (reglas y SQL) → MySQL.
+En el backend, cada petición sigue el mismo camino: `routes` → `controllers` (valida) → `services` (reglas y modelos de Sequelize) → MySQL.
 
 En desarrollo, el navegador solo habla con Vite (puerto 5173), que reenvía `/api` al backend
 (puerto 3000). Así las cookies `SameSite=Strict` funcionan sin configurar CORS.
 
 ## Requisitos
 
-- Node.js 20.19 o superior (lo piden Vite y ESLint)
+- Node.js 20.19 o superior (lo piden Vite, ESLint y los modelos en CommonJS que cargan módulos ES)
 - MySQL 8
 
 ## Instalación
@@ -115,7 +117,7 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 **4. Crear las tablas y el administrador**
 
 ```bash
-npm run db:init      # ejecuta db/schema.sql (no toca las tablas que ya existen)
+npm run db:migrate   # aplica las migraciones pendientes (las ya aplicadas no se repiten)
 npm run seed:admin   # crea el admin, o actualiza su contraseña si ya existe
 npm run seed:datos   # opcional: jugadores y rosters de ejemplo (T1, Gen.G, G2...)
 ```
@@ -169,7 +171,7 @@ inicia sesión con `ADMIN_EMAIL` y `ADMIN_PASSWORD`.
 
 - **`ECONNREFUSED` o "No se pudo conectar a MySQL":** el servicio no está activo (`sudo service mysql start`).
 - **`Access denied`:** el usuario o la contraseña del `.env` no coinciden con los del `CREATE USER`.
-- **`Table ... doesn't exist`:** falta `npm run db:init`.
+- **`Table ... doesn't exist`:** falta `npm run db:migrate`.
 - **"Falta JWT_SECRET en el .env":** define `JWT_SECRET` en `backend/.env`.
 
 ## Scripts
@@ -181,7 +183,8 @@ inicia sesión con `ADMIN_EMAIL` y `ADMIN_PASSWORD`.
 | `npm run dev`        | Inicia el servidor y lo reinicia al guardar    |
 | `npm start`          | Inicia el servidor                             |
 | `npm test`           | Ejecuta las pruebas (con el servidor corriendo) |
-| `npm run db:init`    | Crea las tablas de `db/schema.sql`             |
+| `npm run db:migrate` | Aplica las migraciones de `migrations/`        |
+| `npm run db:undo`    | Revierte todas las migraciones (borra las tablas) |
 | `npm run seed:admin` | Crea o actualiza el usuario administrador      |
 | `npm run seed:datos` | Agrega jugadores y rosters de ejemplo (no duplica si se corre otra vez) |
 
@@ -343,7 +346,7 @@ Los errores responden con `{ "error": "mensaje" }`. En los errores de validació
 
 ## Modelo de datos
 
-Definido en [`backend/db/schema.sql`](backend/db/schema.sql).
+Tablas en [`backend/migrations/`](backend/migrations/); modelos y asociaciones en [`backend/models/`](backend/models/).
 
 ```
 jugadores                         rosters
@@ -405,6 +408,6 @@ npx playwright show-report                # reporte HTML de la última corrida
 
 ## Tecnologías
 
-**Backend:** Node.js (ES modules) · Express 5 · MySQL 8 · mysql2 · Zod · jsonwebtoken · bcryptjs · cookie-parser · OpenAPI 3 con Swagger UI
+**Backend:** Node.js (ES modules) · Express 5 · MySQL 8 · Sequelize · mysql2 · Zod · jsonwebtoken · bcryptjs · cookie-parser · OpenAPI 3 con Swagger UI
 
 **Frontend:** Vue 3 · Vuetify · JavaScript (ES modules) · Vite · Vue Router · Pinia · ESLint · Prettier · Playwright
